@@ -50,7 +50,7 @@ For anything about how Juggle looks or feels, build a quick throwaway version wi
 4. **Review it.** After each feature, review everything changed for it with `/ponytail-review`, following `docs/agents/review.md`. Each finding becomes an issue. Must-fix and should-fix findings are queued on the board straight after the feature and built before the next feature; the rest go to triage for me.
 5. **Record it.** Update `CONTEXT.md`, the ADRs and the issue with anything that changed while building it.
 6. **Commit it**, following `docs/agents/commits.md`. Never push: code is pushed only when I say so.
-7. **Deploy it** with `npm run deploy`, which checks and tests locally, deploys the beta copy and runs the browser tests against it through real Access, and only then saves a copy of the real database, applies migrations and deploys the real Juggle, stopping at the first failure. Deploying from CI comes later.
+7. **Deploy it** by pushing to main, once I say to push. CI runs `npm run deploy`, which checks and tests, deploys the beta copy and runs the browser tests against it through real Access, and only then prints the point the real database can be restored to, applies migrations and deploys the real Juggle, stopping at the first failure. A pull request runs only the checks and tests. Never deploy from the laptop.
 8. **Hand it over proven.** Every check that can be automated is a test that the deploy runs, so a finished feature is handed over as ready to use, never with a request to try it. Only what needs a real device or my judgement of how it looks and feels is left to me. Tick each acceptance criterion, bring the record of where the work stands up to date and stop for my feedback.
 
 ### Close the feedback loop
