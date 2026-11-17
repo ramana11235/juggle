@@ -1,0 +1,47 @@
+// Juggle on Cloudflare: one Worker serving the app and its API. Copy this file
+// to wrangler.jsonc, which git ignores, and fill in your own domain. Local
+// development and the tests read this file as it is.
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "juggle",
+	"main": "src/worker/index.ts",
+	"compatibility_date": "2026-11-01",
+	// The custom domain, behind Access, is the only way in, so the workers.dev
+	// and preview addresses, which Access does not cover, stay off.
+	"workers_dev": false,
+	"preview_urls": false,
+	"routes": [{"pattern": "juggle.example.com", "custom_domain": true}],
+	// The Access team and application whose tokens the Worker accepts. Neither
+	// is a secret: they say who signs the tokens, not how.
+	"vars": {
+		// How the Worker learns who is asking: "access" on Cloudflare, "local"
+		// for development and tests, where Access is not in front.
+		"SIGN_IN": "local",
+		"ACCESS_TEAM": "https://your-team.cloudflareaccess.com",
+		"ACCESS_AUD": "your-access-app-audience-tag",
+		// The service tokens that sign in as test People, by client id. Only the
+		// beta copy names any: the real Juggle accepts only people signing in.
+		"SERVICE_TOKEN_PEOPLE": "{}"
+	},
+	"assets": {
+		"not_found_handling": "single-page-application",
+		"run_worker_first": ["/api/*"]
+	},
+	// Keeps the Worker's logs and errors, and those the app reports, searchable
+	// in Cloudflare's dashboard.
+	"observability": {"enabled": true},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "juggle",
+			"database_id": "your-d1-database-id",
+			"migrations_dir": "migrations"
+		}
+	],
+	// Each Person has a Durable Object that passes changes to every screen they
+	// have open (src/worker/screens.ts). The free plan allows only SQLite-backed ones.
+	"durable_objects": {
+		"bindings": [{"name": "SCREENS", "class_name": "PersonScreens"}]
+	},
+	"migrations": [{"tag": "person-screens", "new_sqlite_classes": ["PersonScreens"]}]
+}

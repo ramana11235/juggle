@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.DS_Store
+.wrangler/
+wrangler.jsonc
+wrangler.beta.jsonc
+beta-tokens.json
+.scratch/
+backups/
+test-results/
+playwright-report/
+.dev.vars
