@@ -8,8 +8,7 @@
     "typecheck": "tsc -b",
     "test": "node scripts/check-tests.mjs && node scripts/check-design.mjs && vitest run && playwright test",
     "types": "wrangler types -c wrangler.example.jsonc --strict-vars=false",
-    "predev": "wrangler d1 migrations apply DB --local -c wrangler.example.jsonc",
-    "deploy": "scripts/deploy.sh"
+    "predev": "wrangler d1 migrations apply DB --local -c wrangler.example.jsonc"
   },
   "engines": {
     "node": ">=22.13"

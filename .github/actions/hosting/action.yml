@@ -1,0 +1,31 @@
+# Sets up a deploy job: Node, the hosting config git does not keep, written
+# from the repo's secrets and masked in the public log, and the packages.
+name: Hosting setup
+description: Node, the hosting config from secrets, and the packages
+inputs:
+  wrangler-jsonc:
+    required: true
+  wrangler-beta-jsonc:
+    required: true
+  beta-tokens-json:
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: npm
+    - name: Write the hosting config git does not keep
+      shell: bash
+      env:
+        WRANGLER_JSONC: ${{ inputs.wrangler-jsonc }}
+        WRANGLER_BETA_JSONC: ${{ inputs.wrangler-beta-jsonc }}
+        BETA_TOKENS_JSON: ${{ inputs.beta-tokens-json }}
+      run: |
+        printf '%s' "$WRANGLER_JSONC" > wrangler.jsonc
+        printf '%s' "$WRANGLER_BETA_JSONC" > wrangler.beta.jsonc
+        printf '%s' "$BETA_TOKENS_JSON" > beta-tokens.json
+        node scripts/mask-hosting-values.mjs
+    - shell: bash
+      run: npm ci
