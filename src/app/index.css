@@ -200,6 +200,15 @@ html, body { overscroll-behavior: none; }
 		width: 0;
 	}
 }
+/* Words in a box of fixed height sit at its optical middle. A box centres
+   the room a line could use, including room below for descenders, so a
+   serif line without them sits high. Room at the top of a fifth of the
+   font size moves the words down by a tenth of it, whatever their size.
+   docs/design.md allows this as the one spacing off the scale. */
+@utility optical-centre {
+	padding-top: 0.2em;
+}
+
 /* A link card whose page has no preview folds away. */
 @utility fold-away {
 	animation: fold-away 300ms ease-in forwards;

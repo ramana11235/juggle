@@ -1,5 +1,5 @@
 import {Menu} from '@base-ui/react/menu';
-import {AlertCircle, ArrowLeft, Check, CheckCheck, Clock, MessageSquareText, MoreHorizontal, Pencil, Plus, Quote as QuoteIcon, Trash2, X} from 'lucide-react';
+import {AlertCircle, ArrowLeft, Check, CheckCheck, Clock, MessageSquareText, Monitor, Moon, MoreHorizontal, Pencil, Plus, Quote as QuoteIcon, Sun, Trash2, X} from 'lucide-react';
 import {useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode} from 'react';
 import {bodyLimit, firstLink, messageLength, nameLimit, ownWords, titleLimit, type LiveEvent, type Message, type Person, type Place, type Quote, type SentPart, type SeenPoint, type SeenUpTo, type Thread} from '../shared/api';
 import {firstUnseen, seenByEveryoneElse, unseenCount} from '../shared/seen';
@@ -11,6 +11,7 @@ import {answeredPassages, draftFrom, draftOf, emptyDraft, toSend, withoutPart, w
 import {cn} from './lib/utils';
 import {button, iconButton, label} from './ui';
 import {stayLive} from './live';
+import {chooseTheme, themeChoice} from './theme';
 import {Heading, Juggled} from './Mark';
 import {begin, useSettledMark} from './settled';
 
@@ -253,7 +254,7 @@ function ThreadList({threads, people, open, onOpen, onStart}: {threads: Thread[]
 							value={title}
 							onChange={(event) => setTitle(event.target.value)}
 							onBlur={() => !title && setAdding(false)}
-							className="mb-1 w-full rounded-box bg-accent px-3 py-2 font-serif text-compact italic outline-none"
+							className="mb-1 h-10 w-full rounded-box bg-accent px-3 font-serif text-compact italic optical-centre outline-none"
 						/>
 					</form>
 				)}
@@ -964,7 +965,7 @@ function AskName({onGive}: {onGive: (name: string) => Promise<void>}) {
 				<Heading ground="var(--background)" />
 				<label className="flex flex-col gap-3">
 					<span className="font-serif text-title leading-tight font-medium tracking-tight">What's your name?</span>
-					<input autoFocus maxLength={nameLimit} value={text} onChange={(event) => setText(event.target.value)} className="rounded-box border border-border bg-card px-4 py-3 font-serif text-reading-wide outline-none focus:border-primary/50" />
+					<input autoFocus maxLength={nameLimit} value={text} onChange={(event) => setText(event.target.value)} className="h-13 rounded-box border border-border bg-card px-4 font-serif text-reading-wide optical-centre outline-none focus:border-primary/50" />
 				</label>
 				<div className="flex items-center justify-end gap-3">
 					{failed && <NotSaved />}
@@ -1069,7 +1070,7 @@ function YourName({name, onChange}: {name: string; onChange: (name: string) => P
 				<div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-6" onClick={() => setChanging(false)}>
 					<form
 						role="dialog"
-						aria-label="Change your name"
+						aria-label="Settings"
 						onClick={(event) => event.stopPropagation()}
 						onKeyDown={(event) => event.key === 'Escape' && setChanging(false)}
 						onSubmit={(event) => {
@@ -1083,11 +1084,22 @@ function YourName({name, onChange}: {name: string; onChange: (name: string) => P
 						}}
 						className="flex w-full max-w-panel flex-col gap-4 rounded-box bg-background p-6 shadow-xl"
 					>
-						<label className="flex flex-col gap-3">
-							<span className="font-serif text-name font-medium tracking-tight">Your name</span>
-							<input autoFocus maxLength={nameLimit} value={text} onChange={(event) => setText(event.target.value)} className="rounded-box border border-border bg-card px-4 py-3 font-serif text-reading-wide outline-none focus:border-primary/50" />
+						{/* One row per setting, its title on the left and its control on the right. */}
+						<label className="flex items-center justify-between gap-4">
+							<span className="font-serif text-compact">Your name</span>
+							<input
+								autoFocus
+								maxLength={nameLimit}
+								value={text}
+								onChange={(event) => setText(event.target.value)}
+								className={cn(setting, 'rounded-box border border-border bg-card px-3 font-serif text-compact optical-centre outline-none focus:border-primary/50')}
+							/>
 						</label>
-						<div className="flex items-center justify-end gap-2">
+						<div className="flex items-center justify-between gap-4">
+							<span className="font-serif text-compact">Theme</span>
+							<ThemeSwitch />
+						</div>
+						<div className="mt-2 flex items-center justify-end gap-2">
 							{failed && <NotSaved />}
 							<button type="button" onClick={() => setChanging(false)} className={button.quiet}>
 								Cancel
@@ -1100,6 +1112,40 @@ function YourName({name, onChange}: {name: string; onChange: (name: string) => P
 				</div>
 			)}
 		</>
+	);
+}
+
+// The size of each setting's control, so the rows line up: tall enough on a
+// phone for the theme switch's 44px buttons.
+const setting = 'h-13 w-37 min-w-0 md:h-11';
+
+// Light, dark or the same as the device. Juggle changes the moment one is
+// picked, and the choice is kept on this device.
+function ThemeSwitch() {
+	const [choice, setChoice] = useState(themeChoice);
+	const choices = [
+		{choice: 'light', name: 'Light', Icon: Sun},
+		{choice: 'dark', name: 'Dark', Icon: Moon},
+		{choice: 'device', name: 'Same as the device', Icon: Monitor},
+	] as const;
+	return (
+		<div role="group" aria-label="Theme" className={cn(setting, 'flex items-center justify-between rounded-full border border-border p-1')}>
+			{choices.map(({choice: c, name, Icon}) => (
+				<button
+					key={c}
+					type="button"
+					aria-label={name}
+					aria-pressed={choice === c}
+					onClick={() => {
+						chooseTheme(c);
+						setChoice(c);
+					}}
+					className={cn(iconButton, 'size-9 rounded-full', choice === c ? 'bg-card shadow-sm' : 'opacity-60 hover:opacity-100')}
+				>
+					<Icon className="size-4" />
+				</button>
+			))}
+		</div>
 	);
 }
 

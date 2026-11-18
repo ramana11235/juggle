@@ -21,7 +21,7 @@ Three inks, made by fading: full (`opacity-100`), secondary (`opacity-60`) for l
 
 ## Spacing
 
-One scale: 4, 8, 12, 16, 20, 24, 32, 48 and 64px, which are Tailwind's 1, 2, 3, 4, 5, 6, 8, 12 and 16. Margins, padding, gaps and positions use only these. The only spacing not on the scale is the room kept for a phone's safe area, which the phone sets.
+One scale: 4, 8, 12, 16, 20, 24, 32, 48 and 64px, which are Tailwind's 1, 2, 3, 4, 5, 6, 8, 12 and 16. Margins, padding, gaps and positions use only these, with two exceptions: the room kept for a phone's safe area, which the phone sets, and `optical-centre`, which every box you type a line into has. A box centres the room a line could use, including room below for descenders, so a serif line without them sits high. The box has a fixed height, and `optical-centre` adds room at the top of a fifth of the font size, which moves the words down by a tenth of it, whatever their size. A browser test measures the words in every box and pill button and fails when they sit more than a pixel off the middle.
 
 A heading sits closer to what it heads than those things are to each other, so it reads as theirs: a Thread's title is 32px above its Messages, which are 48px apart, and the side discussion's label is 12px above what it heads.
 
@@ -48,6 +48,10 @@ Buttons with words come in two kinds, from `button` in `src/app/ui.ts`: primary 
 ## The box to write in
 
 Send sits to the right of the words, level with their last line, as in other chat apps.
+
+## Settings
+
+Tapping your name opens settings, one row per setting: its title on the left in plain words, and its control on the right. Every control is the same width and height, so the rows line up.
 
 ## Side discussions
 

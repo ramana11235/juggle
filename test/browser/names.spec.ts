@@ -86,7 +86,7 @@ test('a name that fails to save keeps its form open with a mark, and saves when 
 	await newcomer.getByRole('textbox', {name: 'Your name'}).fill('user-1 renamed');
 	await newcomer.getByRole('button', {name: 'Save'}).click();
 	await settled(newcomer);
-	await expect(newcomer.getByRole('dialog', {name: 'Change your name'}).getByLabel('Not saved')).toBeVisible();
+	await expect(newcomer.getByRole('dialog', {name: 'Settings'}).getByLabel('Not saved')).toBeVisible();
 	await newcomer.unroute('**/api/me/name');
 	await newcomer.getByRole('button', {name: 'Save'}).click();
 	await settled(newcomer);
