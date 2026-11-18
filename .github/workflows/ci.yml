@@ -21,10 +21,24 @@ jobs:
       - run: node scripts/check-tests.mjs
       - run: npx vitest run
 
+  # The browser jobs run in Playwright's own image for the version the
+  # project uses, which holds the browsers and the system packages they need,
+  # so no job installs them.
+  playwright:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+
   # Each local browser test has a Juggle of its own, so the suite is split
   # across machines that run at the same time.
   browser:
+    needs: playwright
     runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v${{ needs.playwright.outputs.version }}
     strategy:
       fail-fast: true
       matrix:
@@ -36,19 +50,13 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ steps.playwright.outputs.version }}
-      - run: npx playwright install --with-deps chromium webkit
       - run: npx playwright test --shard=${{ matrix.shard }}/4
 
   deploy:
     if: github.event_name == 'push'
-    needs: [checks, browser]
+    needs: [checks, browser, playwright]
     runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v${{ needs.playwright.outputs.version }}
     # Every deploy's beta tests share beta's one database, so only one deploy
     # runs at a time, and a waiting one is never cancelled.
     concurrency:
@@ -74,11 +82,4 @@ jobs:
           printf '%s' "$BETA_TOKENS_JSON" > beta-tokens.json
           node scripts/mask-hosting-values.mjs
       - run: npm ci
-      - id: playwright
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ steps.playwright.outputs.version }}
-      - run: npx playwright install --with-deps chromium webkit
       - run: npm run deploy
