@@ -7,6 +7,23 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    /* Juggle's design rules (docs/design.md). Only these text sizes exist:
+       Tailwind's own are removed, so any other size is not a class. */
+    --text-*: initial;
+    --text-label: 12px;
+    --text-note: 13px;
+    --text-compact: 16px;
+    --text-reading: 17px;
+    --text-reading-wide: 18px;
+    --text-name: 26px;
+    --text-title: 36px;
+    --text-title-wide: 48px;
+    --tracking-label: 0.15em;
+    --tracking-reading: 0.005em;
+    --leading-reading: 1.85;
+    --radius-box: 12px;
+    --container-column: 800px;
+    --container-panel: 420px;
     --font-heading: var(--font-serif);
     --font-serif: 'Newsreader Variable', serif;
     --font-sans: 'Geist Variable', sans-serif;

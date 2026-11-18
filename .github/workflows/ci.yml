@@ -19,6 +19,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: node scripts/check-tests.mjs
+      - run: node scripts/check-design.mjs
       - run: npx vitest run
 
   # The browser jobs run in Playwright's own image for the version the

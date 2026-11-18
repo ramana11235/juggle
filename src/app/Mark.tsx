@@ -36,9 +36,9 @@ export function Juggled({size, ground}: {size: number; ground: string}) {
 // Juggle's name with its mark beside it, on whatever background is given.
 export function Heading({ground}: {ground: string}) {
 	return (
-		<h1 className="flex items-center gap-2 font-serif text-[26px] leading-none font-medium tracking-tight">
+		<h1 className="flex items-center gap-2 font-serif text-name leading-none font-medium tracking-tight">
 			{/* The name's descenders make its box deeper than its letters, so the mark is raised to sit level with them. */}
-			<span className="-translate-y-[3px]">
+			<span className="-translate-y-0.75">
 				<Mark size={28} ground={ground} />
 			</span>
 			Juggle

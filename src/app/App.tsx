@@ -8,6 +8,7 @@ import {keep, kept} from './kept';
 import {Markdown, PlainText} from './Markdown';
 import {answeredPassages, draftFrom, draftOf, emptyDraft, toSend, withoutPart, withQuote, type Draft} from './replies';
 import {cn} from './lib/utils';
+import {button, iconButton, label} from './ui';
 import {stayLive} from './live';
 import {Heading, Juggled} from './Mark';
 import {begin, useSettledMark} from './settled';
@@ -17,7 +18,7 @@ import {begin, useSettledMark} from './settled';
 // with the same id.
 type Shown = {message: Message; delivery: {kind: 'saved'} | {kind: 'sending'} | {kind: 'failed'}};
 
-const column = 'max-w-[800px]';
+const column = 'max-w-column';
 const unsaved = 'juggle-unsaved-messages';
 
 // The open Thread is at /t/<id>, and a side discussion open in it at /t/<id>/s/<Message id>.
@@ -227,13 +228,13 @@ function ThreadList({threads, people, open, onOpen, onStart}: {threads: Thread[]
 			<div className="px-5 pt-5 pb-4">
 				<Heading ground="var(--sidebar)" />
 			</div>
-			<div className="flex items-center justify-between px-5 pb-1 text-[11px] font-medium tracking-[0.15em] uppercase opacity-50">
+			<div className={cn('flex items-center justify-between px-5 pb-1', label)}>
 				Threads
-				<button onClick={() => setAdding(true)} aria-label="New Thread" className="rounded p-0.5 hover:bg-accent">
+				<button onClick={() => setAdding(true)} aria-label="New Thread" className={cn(iconButton, 'rounded-box p-1 hover:bg-accent')}>
 					<Plus className="size-4" />
 				</button>
 			</div>
-			<div className="flex-1 overflow-y-auto px-2 pb-24">
+			<div className="flex-1 overflow-y-auto px-2 pb-16">
 				{adding && (
 					<form
 						onSubmit={(event) => {
@@ -250,7 +251,7 @@ function ThreadList({threads, people, open, onOpen, onStart}: {threads: Thread[]
 							value={title}
 							onChange={(event) => setTitle(event.target.value)}
 							onBlur={() => !title && setAdding(false)}
-							className="mb-1 w-full rounded-lg bg-accent px-3 py-2 font-serif text-[17px] italic outline-none"
+							className="mb-1 w-full rounded-box bg-accent px-3 py-2 font-serif text-compact italic outline-none"
 						/>
 					</form>
 				)}
@@ -259,11 +260,11 @@ function ThreadList({threads, people, open, onOpen, onStart}: {threads: Thread[]
 						<li key={thread.id}>
 							<button
 								onClick={() => onOpen(thread.id)}
-								className={cn('flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors', open === thread.id ? 'bg-background shadow-sm' : 'hover:bg-accent')}
+								className={cn('flex w-full items-center gap-3 rounded-box px-3 py-3 text-left transition-colors', open === thread.id ? 'bg-background shadow-sm' : 'hover:bg-accent')}
 							>
 								<span className="min-w-0 flex-1">
-									<span className={cn('block truncate font-serif text-[17px] leading-snug', thread.unseen > 0 && 'font-semibold')}>{thread.title}</span>
-									<span className={cn('mt-0.5 block truncate font-serif text-[14px] italic', thread.unseen > 0 ? 'opacity-75' : 'opacity-45')}>
+									<span className={cn('block truncate font-serif text-compact leading-snug', thread.unseen > 0 && 'font-semibold')}>{thread.title}</span>
+									<span className={cn('mt-1 block truncate font-serif text-note italic', thread.unseen > 0 ? 'opacity-60' : 'opacity-60')}>
 										{thread.last.kind === 'message' ? (
 											<>
 												{nameOf(people, thread.last.authorId)}: <PlainText text={thread.last.body} />
@@ -274,7 +275,7 @@ function ThreadList({threads, people, open, onOpen, onStart}: {threads: Thread[]
 									</span>
 								</span>
 								{thread.unseen > 0 && (
-									<span aria-label={`${thread.unseen} unseen`} className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground tabular-nums">
+									<span aria-label={`${thread.unseen} unseen`} className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary px-2 text-label font-semibold text-primary-foreground tabular-nums">
 										{thread.unseen}
 									</span>
 								)}
@@ -358,7 +359,7 @@ function Reading({thread, me, people, loading, saved, outgoing, side, onSide, on
 					draftKey={`juggle-draft-${thread.id}`}
 					top={
 						<>
-							<button onClick={onBack} className="mb-6 flex items-center gap-2 text-[12px] tracking-[0.15em] uppercase opacity-55 md:hidden">
+							<button onClick={onBack} className={cn('mb-6 flex items-center gap-2 md:hidden', label)}>
 								<ArrowLeft className="size-4" /> Threads
 							</button>
 							<Title title={thread.title} onRename={onRename} />
@@ -371,8 +372,8 @@ function Reading({thread, me, people, loading, saved, outgoing, side, onSide, on
 						return {count: messages.length, unseen: unseenCount(saved, me.id, mine), onOpen: () => onSide(message.id)};
 					}}
 					onSend={(parts) => onSend(parts, {kind: 'main'})}
-					className={cn('mx-auto px-6 pt-6 pb-10 md:pt-14', column)}
-					footClassName={cn('mx-auto w-full md:px-6', column)}
+					className={cn('mx-auto px-6 pt-6 pb-12 md:pt-16 md:pl-16', column)}
+					footClassName={cn('mx-auto w-full md:px-6 md:pl-16', column)}
 				/>
 			</div>
 			{panel && (
@@ -380,7 +381,7 @@ function Reading({thread, me, people, loading, saved, outgoing, side, onSide, on
 					aria-label="Side discussion"
 					inert={!parent}
 					className={cn(
-						'fixed inset-0 z-40 bg-card md:static md:z-auto md:w-[420px] md:shrink-0 md:overflow-hidden md:border-l md:border-border',
+						'fixed inset-0 z-40 bg-card md:static md:z-auto md:w-panel md:shrink-0 md:overflow-hidden md:border-l md:border-border',
 						parent ? 'max-md:motion-safe:slide-in md:motion-safe:drawer-in' : 'max-md:slide-out md:drawer-out',
 					)}
 					onAnimationEnd={(event) => {
@@ -388,11 +389,11 @@ function Reading({thread, me, people, loading, saved, outgoing, side, onSide, on
 					}}
 				>
 					{/* On a laptop the panel opens from no width to its own, so its contents keep their width and do not rewrap as it opens. */}
-					<div className="flex h-full flex-col md:w-[420px]">
-						<div className="flex items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] pb-4">
-							<span className="text-[12px] font-medium tracking-[0.15em] uppercase opacity-60">Side discussion</span>
-							<button onClick={onCloseSide} aria-label="Close" className="opacity-60 hover:opacity-100">
-								<X className="size-5" />
+					<div className="flex h-full flex-col md:w-panel">
+						<div className="flex items-center justify-between px-5 pt-[max(20px,env(safe-area-inset-top))] pb-3">
+							<span className={label}>Side discussion</span>
+							<button onClick={onCloseSide} aria-label="Close" className={cn(iconButton, 'opacity-60 hover:opacity-100')}>
+								<X className="size-4" />
 							</button>
 						</div>
 						<div className="min-h-0 flex-1">
@@ -407,9 +408,9 @@ function Reading({thread, me, people, loading, saved, outgoing, side, onSide, on
 								looking
 								sentHere={sentIn({kind: 'side', messageId: panel.message.id})}
 								draftKey={`juggle-draft-${thread.id}-${panel.message.id}`}
-								parent={{shown: panel, seen: seenByEveryoneElse(panel.message, thread.seen)}}
+								parent={panel.message}
 								onSend={(parts) => onSend(parts, {kind: 'side', messageId: panel.message.id})}
-								className="px-5 pb-6"
+								className="px-5 pt-3 pb-6"
 								footClassName=""
 								small
 							/>
@@ -449,7 +450,8 @@ function Conversation({me, people, answered, deleted, onEdit, onDelete, onResend
 	sentHere: number;
 	draftKey: string;
 	top?: ReactNode;
-	parent?: {shown: Shown; seen: boolean};
+	// The Message a side discussion was started under, shown above it as a quote.
+	parent?: Message;
 	sides?: (message: Message) => SideMark;
 	onSend: (parts: SentPart[]) => void;
 	className: string;
@@ -500,7 +502,11 @@ function Conversation({me, people, answered, deleted, onEdit, onDelete, onResend
 			<div ref={scroller} className="flex-1 overflow-y-auto">
 				<div className={className}>
 					{top}
-					{parent && <div className="mb-6 border-b border-border pb-6 opacity-75">{letter(parent.shown, parent.seen)}</div>}
+					{parent && (
+						<blockquote className="mb-8 border-l-2 border-primary pl-4 font-serif text-compact italic opacity-60">
+							{parent.deleted ? 'This message was deleted' : <Markdown text={parent.body} className="md" />}
+						</blockquote>
+					)}
 					{loading ? (
 						<div className="grid place-items-center py-16">
 							<Juggled size={44} ground="var(--background)" />
@@ -530,7 +536,7 @@ function Conversation({me, people, answered, deleted, onEdit, onDelete, onResend
 						quote({kind: 'passage', messageId: selected.messageId, text: selected.text});
 						clearSelected();
 					}}
-					className="fixed z-50 -translate-x-1/2 rounded-full bg-foreground px-4 py-2 text-[13px] text-background shadow-lg"
+					className="fixed z-50 -translate-x-1/2 rounded-full bg-foreground px-4 py-2 text-note text-background shadow-lg"
 					style={{left: Math.max(70, Math.min(selected.x, window.innerWidth - 70)), top: selected.y + 10}}
 				>
 					Reply to this
@@ -662,30 +668,30 @@ function Letter({shown, mine, seen, name, answered, highlighted, small, side, de
 	const [failed, setFailed] = useState(false);
 	const time = (at: number) => new Date(at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 	return (
-		<li className="group relative rounded-lg motion-safe:fade-in" data-message-id={message.id} data-highlighted={highlighted}>
+		<li className="group relative rounded-box motion-safe:fade-in" data-message-id={message.id} data-highlighted={highlighted}>
 			{!small && (
-				<span className="absolute top-0 -left-12 hidden size-8 place-items-center rounded-full text-[13px] font-semibold md:grid" style={{background: tint, color: who}}>
+				<span data-initial className="absolute top-0 -left-12 hidden size-8 place-items-center rounded-full text-note font-semibold md:grid" style={{background: tint, color: who}}>
 					{initial}
 				</span>
 			)}
-			<header className="mb-2 flex items-baseline gap-2.5">
-				<span className={cn('grid size-5 shrink-0 place-items-center self-center rounded-full text-[10px] font-semibold', !small && 'md:hidden')} style={{background: tint, color: who}}>
+			<header className="mb-2 flex items-baseline gap-3">
+				<span className={cn('grid size-6 shrink-0 place-items-center self-center rounded-full text-label font-semibold', !small && 'md:hidden')} style={{background: tint, color: who}}>
 					{initial}
 				</span>
-				<span className="text-[12px] font-semibold tracking-[0.12em] uppercase" style={{color: who}}>
+				<span className="text-label font-semibold tracking-label uppercase" style={{color: who}}>
 					{name}
 				</span>
-				<span className="text-[12px] opacity-45">{time(message.sentAt)}</span>
+				<span className="text-label opacity-60">{time(message.sentAt)}</span>
 				{message.edited.kind === 'at' && !message.deleted && (
-					<span title={`Edited at ${time(message.edited.at)}`} aria-label={`Edited at ${time(message.edited.at)}`} className="self-center opacity-45">
-						<Pencil className="size-3" />
+					<span title={`Edited at ${time(message.edited.at)}`} aria-label={`Edited at ${time(message.edited.at)}`} className="self-center opacity-60">
+						<Pencil className="size-3.5" />
 					</span>
 				)}
 				{mine && !message.deleted && <DeliveryMark delivery={delivery} seen={seen} onResend={onResend} />}
 				{failed && <NotSaved />}
 			</header>
 			{message.deleted ? (
-				<p className="font-serif text-[17px] italic opacity-50 md:text-[18px]">This message was deleted</p>
+				<p className="font-serif text-reading italic opacity-60 md:text-reading-wide">This message was deleted</p>
 			) : editing ? (
 				<Composer
 					draft={editing}
@@ -704,13 +710,13 @@ function Letter({shown, mine, seen, name, answered, highlighted, small, side, de
 				<div className="flex flex-col gap-3">
 					{message.parts.map((part, i) =>
 						part.kind === 'text' ? (
-							<Markdown key={i} text={part.text} answered={answered} className="md md-airy font-serif text-[17px] leading-[1.85] tracking-[0.005em] opacity-[.86] md:text-[18px]" />
+							<Markdown key={i} text={part.text} answered={answered} className="md md-airy font-serif text-reading leading-reading tracking-reading opacity-86 md:text-reading-wide" />
 						) : (
 							<button
 								key={i}
 								onClick={() => onGoTo(part.messageId)}
 								aria-label={`Go to the quoted Message: ${part.kind === 'deleted' || deletedQuotes.has(part.messageId) ? 'This message was deleted' : part.text}`}
-								className={cn('border-l-2 border-primary pl-4 text-left font-serif text-[16px] leading-7 italic opacity-70 hover:opacity-100', part.kind === 'whole' && 'line-clamp-3')}
+								className={cn('border-l-2 border-primary pl-4 text-left font-serif text-compact leading-7 italic opacity-60 hover:opacity-100', part.kind === 'whole' && 'line-clamp-3')}
 							>
 								{part.kind === 'deleted' || deletedQuotes.has(part.messageId) ? 'This message was deleted' : part.kind === 'whole' ? <PlainText text={part.text} /> : part.text}
 							</button>
@@ -722,12 +728,12 @@ function Letter({shown, mine, seen, name, answered, highlighted, small, side, de
 				<button
 					onClick={side.onOpen}
 					aria-label={`Open side discussion, ${side.count} ${side.count === 1 ? 'message' : 'messages'}`}
-					className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[13px] font-medium text-primary tabular-nums transition-colors hover:border-primary/40 hover:bg-accent"
+					className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-note font-medium text-primary tabular-nums transition-colors hover:border-primary/40 hover:bg-accent"
 				>
 					<MessageSquareText className="size-4" />
 					{side.count}
 					{side.unseen > 0 && (
-						<span aria-label={`${side.unseen} unseen`} className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
+						<span aria-label={`${side.unseen} unseen`} className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-2 text-label font-semibold text-primary-foreground">
 							{side.unseen}
 						</span>
 					)}
@@ -735,28 +741,28 @@ function Letter({shown, mine, seen, name, answered, highlighted, small, side, de
 			)}
 			{delivery.kind === 'saved' && !message.deleted && !editing && (
 				<div className="absolute -top-2 right-0 flex rounded-full border border-border bg-card shadow-sm md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
-					<button onClick={onReply} aria-label="Reply" className="p-1.5 opacity-60 hover:opacity-100">
+					<button onClick={onReply} aria-label="Reply" className={cn(iconButton, 'p-2 opacity-60 hover:opacity-100')}>
 						<QuoteIcon className="size-4" />
 					</button>
 					{side && (
-						<button onClick={side.onOpen} aria-label="Side discussion" className="p-1.5 opacity-60 hover:opacity-100">
+						<button onClick={side.onOpen} aria-label="Side discussion" className={cn(iconButton, 'p-2 opacity-60 hover:opacity-100')}>
 							<MessageSquareText className="size-4" />
 						</button>
 					)}
 					{mine && (
 						<Menu.Root>
-							<Menu.Trigger aria-label="More actions" className="p-1.5 opacity-60 hover:opacity-100">
+							<Menu.Trigger aria-label="More actions" className={cn(iconButton, 'p-2 opacity-60 hover:opacity-100')}>
 								<MoreHorizontal className="size-4" />
 							</Menu.Trigger>
 							<Menu.Portal>
 								<Menu.Positioner align="end" sideOffset={4} className="z-50">
-									<Menu.Popup className="min-w-36 rounded-lg border border-border bg-card p-1 font-serif shadow-lg outline-none">
+									<Menu.Popup className="min-w-36 rounded-box border border-border bg-card p-1 font-serif shadow-lg outline-none">
 										<Menu.Item
 											onClick={() => {
 												setFailed(false);
 												setEditing(draftOf(message.parts));
 											}}
-											className="flex cursor-default items-center gap-2 rounded px-3 py-1.5 outline-none data-highlighted:bg-accent"
+											className="flex cursor-default items-center gap-2 rounded-box px-3 py-2 outline-none data-highlighted:bg-accent"
 										>
 											<Pencil className="size-4" /> Edit
 										</Menu.Item>
@@ -765,7 +771,7 @@ function Letter({shown, mine, seen, name, answered, highlighted, small, side, de
 												setFailed(false);
 												onDelete().catch(() => setFailed(true));
 											}}
-											className="flex cursor-default items-center gap-2 rounded px-3 py-1.5 text-destructive outline-none data-highlighted:bg-accent"
+											className="flex cursor-default items-center gap-2 rounded-box px-3 py-2 text-destructive outline-none data-highlighted:bg-accent"
 										>
 											<Trash2 className="size-4" /> Delete
 										</Menu.Item>
@@ -784,7 +790,7 @@ function DeliveryMark({delivery, seen, onResend}: {delivery: Shown['delivery']; 
 	switch (delivery.kind) {
 		case 'sending':
 			return (
-				<span title="Sending" aria-label="Sending" className="self-center opacity-45">
+				<span title="Sending" aria-label="Sending" className="self-center opacity-60">
 					<Clock className="size-3.5" />
 				</span>
 			);
@@ -796,13 +802,13 @@ function DeliveryMark({delivery, seen, onResend}: {delivery: Shown['delivery']; 
 					</span>
 				);
 			return (
-				<span title="Sent" aria-label="Sent" className="self-center opacity-45">
+				<span title="Sent" aria-label="Sent" className="self-center opacity-60">
 					<Check className="size-3.5" />
 				</span>
 			);
 		case 'failed':
 			return (
-				<button onClick={onResend} title="Not sent, send again" aria-label="Not sent, send again" className="self-center text-destructive">
+				<button onClick={onResend} title="Not sent, send again" aria-label="Not sent, send again" className={cn(iconButton, 'self-center text-destructive')}>
 					<AlertCircle className="size-3.5" />
 				</button>
 			);
@@ -850,32 +856,34 @@ function Composer({draft, onChange, onSend, action = 'Send', onCancel}: {draft: 
 	const sendable = toSend(draft).length > 0 && messageLength(draft) <= bodyLimit;
 	const send = () => sendable && onSend();
 	return (
-		<div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 focus-within:border-primary/50">
-			{draft.map((part, i) =>
-				part.kind === 'text' ? (
-					<Words
-						key={i}
-						text={part.text}
-						focus={onCancel ? i === firstWords : i > 0}
-						onChange={(text) => onChange(draft.map((p, j) => (j === i ? {kind: 'text', text} : p)))}
-						onSend={send}
-					/>
-				) : (
-					<div key={i} className="relative border-l-2 border-primary pr-6 pl-3 font-serif text-[16px] italic opacity-70">
-						<span className="line-clamp-3">{part.kind === 'whole' ? <PlainText text={part.text} /> : part.text}</span>
-						<button onClick={() => onChange(withoutPart(draft, i))} aria-label="Remove quote" className="absolute top-0.5 right-1 opacity-50 hover:opacity-100">
-							×
-						</button>
-					</div>
-				),
-			)}
-			<div className="flex justify-end gap-2">
+		<div className="flex items-end gap-3 rounded-box border border-border bg-card px-4 py-3 focus-within:border-primary/50">
+			<div className="flex min-w-0 flex-1 flex-col gap-2">
+				{draft.map((part, i) =>
+					part.kind === 'text' ? (
+						<Words
+							key={i}
+							text={part.text}
+							focus={onCancel ? i === firstWords : i > 0}
+							onChange={(text) => onChange(draft.map((p, j) => (j === i ? {kind: 'text', text} : p)))}
+							onSend={send}
+						/>
+					) : (
+						<div key={i} className="relative border-l-2 border-primary pr-12 pl-3 md:pr-6 font-serif text-compact italic opacity-60">
+							<span className="line-clamp-3">{part.kind === 'whole' ? <PlainText text={part.text} /> : part.text}</span>
+							<button onClick={() => onChange(withoutPart(draft, i))} aria-label="Remove quote" className={cn(iconButton, 'absolute top-0 right-0 opacity-60 hover:opacity-100')}>
+								<X className="size-3.5" />
+							</button>
+						</div>
+					),
+				)}
+			</div>
+			<div className="flex shrink-0 gap-2">
 				{onCancel && (
-					<button onClick={onCancel} className="rounded-full px-4 py-1 text-[13px] hover:bg-accent">
+					<button onClick={onCancel} className={button.quiet}>
 						Cancel
 					</button>
 				)}
-				<button disabled={!sendable} onClick={send} className="rounded-full bg-primary px-4 py-1 text-[13px] font-medium text-primary-foreground disabled:opacity-30">
+				<button disabled={!sendable} onClick={send} className={button.primary}>
 					{action}
 				</button>
 			</div>
@@ -898,7 +906,7 @@ function Words({text, focus, onChange, onSend}: {text: string; focus: boolean; o
 			onKeyDown={(event) => {
 				if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) onSend();
 			}}
-			className="w-full resize-none bg-transparent font-serif text-[18px] leading-7 outline-none"
+			className="w-full resize-none bg-transparent font-serif text-reading leading-7 outline-none md:text-reading-wide"
 		/>
 	);
 }
@@ -934,7 +942,7 @@ function AskName({onGive}: {onGive: (name: string) => Promise<void>}) {
 	return (
 		<div className="grid h-dvh place-items-center px-6">
 			<form
-				className="flex w-full max-w-[420px] flex-col gap-6"
+				className="flex w-full max-w-panel flex-col gap-6"
 				onSubmit={(event) => {
 					event.preventDefault();
 					if (!text.trim()) return;
@@ -944,12 +952,12 @@ function AskName({onGive}: {onGive: (name: string) => Promise<void>}) {
 			>
 				<Heading ground="var(--background)" />
 				<label className="flex flex-col gap-3">
-					<span className="font-serif text-4xl leading-tight font-medium tracking-tight">What's your name?</span>
-					<input autoFocus maxLength={nameLimit} value={text} onChange={(event) => setText(event.target.value)} className="rounded-xl border border-border bg-card px-4 py-3 font-serif text-[20px] outline-none focus:border-primary/50" />
+					<span className="font-serif text-title leading-tight font-medium tracking-tight">What's your name?</span>
+					<input autoFocus maxLength={nameLimit} value={text} onChange={(event) => setText(event.target.value)} className="rounded-box border border-border bg-card px-4 py-3 font-serif text-reading-wide outline-none focus:border-primary/50" />
 				</label>
 				<div className="flex items-center justify-end gap-3">
 					{failed && <NotSaved />}
-					<button disabled={!text.trim()} className="rounded-full bg-primary px-5 py-1.5 text-[14px] font-medium text-primary-foreground disabled:opacity-30">
+					<button disabled={!text.trim()} className={button.primary}>
 						Continue
 					</button>
 				</div>
@@ -958,7 +966,7 @@ function AskName({onGive}: {onGive: (name: string) => Promise<void>}) {
 	);
 }
 
-const titleClass = 'font-serif text-4xl leading-tight font-medium tracking-tight md:text-5xl';
+const titleClass = 'font-serif text-title leading-tight font-medium tracking-tight md:text-title-wide';
 
 // The open Thread's title, with a menu beside it that holds Rename. Renaming
 // turns the title into a text box: Enter saves and Escape or leaving it cancels.
@@ -968,7 +976,7 @@ function Title({title, onRename}: {title: string; onRename: (title: string) => P
 	const [failed, setFailed] = useState(false);
 	const box = useRef<HTMLInputElement>(null);
 	return (
-		<div className="mb-12 flex items-start gap-3">
+		<div className="mb-8 flex items-start gap-3 md:-ml-12">
 			{editing ? (
 				<form
 					className="flex w-full items-center gap-3"
@@ -991,7 +999,7 @@ function Title({title, onRename}: {title: string; onRename: (title: string) => P
 						onChange={(event) => setText(event.target.value)}
 						onBlur={() => setEditing(false)}
 						onKeyDown={(event) => event.key === 'Escape' && setEditing(false)}
-						className={cn(titleClass, '-mx-2 w-full rounded-lg bg-accent px-2 outline-none')}
+						className={cn(titleClass, '-mx-2 w-full rounded-box bg-accent px-2 outline-none')}
 					/>
 					{failed && <NotSaved />}
 				</form>
@@ -1000,19 +1008,19 @@ function Title({title, onRename}: {title: string; onRename: (title: string) => P
 			)}
 			{!editing && (
 				<Menu.Root>
-					<Menu.Trigger aria-label="Thread menu" className="mt-3 ml-auto rounded p-1 opacity-50 hover:opacity-90">
-						<MoreHorizontal className="size-5" />
+					<Menu.Trigger aria-label="Thread menu" className={cn(iconButton, 'mt-3 ml-auto rounded-box p-1 opacity-60 hover:opacity-100')}>
+						<MoreHorizontal className="size-4" />
 					</Menu.Trigger>
 					<Menu.Portal>
 						<Menu.Positioner align="end" sideOffset={4} className="z-50">
-							<Menu.Popup finalFocus={box} className="w-40 rounded-lg border border-border bg-card p-1 shadow-lg outline-none">
+							<Menu.Popup finalFocus={box} className="w-40 rounded-box border border-border bg-card p-1 shadow-lg outline-none">
 								<Menu.Item
 									onClick={() => {
 										setText(title);
 										setFailed(false);
 										setEditing(true);
 									}}
-									className="w-full cursor-default rounded px-3 py-1.5 text-left font-serif outline-none data-highlighted:bg-accent"
+									className="w-full cursor-default rounded-box px-3 py-2 text-left font-serif outline-none data-highlighted:bg-accent"
 								>
 									Rename
 								</Menu.Item>
@@ -1039,12 +1047,12 @@ function YourName({name, onChange}: {name: string; onChange: (name: string) => P
 					setFailed(false);
 					setChanging(true);
 				}}
-				className="mx-2 mb-[max(8px,env(safe-area-inset-bottom))] flex items-center gap-3 rounded-lg px-3 py-3 text-left hover:bg-accent"
+				className="mx-2 mb-[max(8px,env(safe-area-inset-bottom))] flex items-center gap-3 rounded-box px-3 py-3 text-left hover:bg-accent"
 			>
-				<span className="grid size-8 shrink-0 place-items-center rounded-full text-[13px] font-semibold" style={{background: 'var(--me-tint)', color: 'var(--me)'}}>
+				<span className="grid size-8 shrink-0 place-items-center rounded-full text-note font-semibold" style={{background: 'var(--me-tint)', color: 'var(--me)'}}>
 					{initialOf(name)}
 				</span>
-				<span className="truncate font-serif text-[16px]">{name}</span>
+				<span className="truncate font-serif text-compact">{name}</span>
 			</button>
 			{changing && (
 				<div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-6" onClick={() => setChanging(false)}>
@@ -1062,18 +1070,18 @@ function YourName({name, onChange}: {name: string; onChange: (name: string) => P
 								() => setFailed(true),
 							);
 						}}
-						className="flex w-full max-w-[420px] flex-col gap-4 rounded-2xl bg-background p-6 shadow-xl"
+						className="flex w-full max-w-panel flex-col gap-4 rounded-box bg-background p-6 shadow-xl"
 					>
 						<label className="flex flex-col gap-3">
-							<span className="font-serif text-2xl font-medium tracking-tight">Your name</span>
-							<input autoFocus maxLength={nameLimit} value={text} onChange={(event) => setText(event.target.value)} className="rounded-xl border border-border bg-card px-4 py-3 font-serif text-[20px] outline-none focus:border-primary/50" />
+							<span className="font-serif text-name font-medium tracking-tight">Your name</span>
+							<input autoFocus maxLength={nameLimit} value={text} onChange={(event) => setText(event.target.value)} className="rounded-box border border-border bg-card px-4 py-3 font-serif text-reading-wide outline-none focus:border-primary/50" />
 						</label>
 						<div className="flex items-center justify-end gap-2">
 							{failed && <NotSaved />}
-							<button type="button" onClick={() => setChanging(false)} className="rounded-full px-4 py-1.5 text-[14px] opacity-60">
+							<button type="button" onClick={() => setChanging(false)} className={button.quiet}>
 								Cancel
 							</button>
-							<button disabled={!text.trim()} className="rounded-full bg-primary px-5 py-1.5 text-[14px] font-medium text-primary-foreground disabled:opacity-30">
+							<button disabled={!text.trim()} className={button.primary}>
 								Save
 							</button>
 						</div>
