@@ -9,6 +9,7 @@ import {Markdown, PlainText} from './Markdown';
 import {answeredPassages, draftFrom, draftOf, emptyDraft, toSend, withoutPart, withQuote, type Draft} from './replies';
 import {cn} from './lib/utils';
 import {stayLive} from './live';
+import {Heading, Juggled} from './Mark';
 import {begin, useSettledMark} from './settled';
 
 // A Message as the screen shows it: saved, or sent from this screen and
@@ -81,13 +82,15 @@ export function App() {
 	);
 
 	useEffect(() => {
-		void Promise.all([api.me(), api.people(), api.threads()]).then(([me, people, threads]) => {
+		// The first screen shows once the Thread open at the start has loaded
+		// too, so Juggled shows once while it loads, not again in the Thread.
+		// If its Messages fail to load, it shows Juggled until they load again.
+		const opened = openRef.current;
+		void Promise.all([api.me(), api.people(), api.threads(), opened && loadMessages(opened).catch(() => {})]).then(([me, people, threads]) => {
 			setMe(me);
 			setPeople(people);
 			setThreads(threads);
 		});
-		const opened = openRef.current;
-		if (opened) void loadMessages(opened);
 		const onBack = () => show(location.pathname);
 		window.addEventListener('popstate', onBack);
 		const stop = stayLive(
@@ -171,7 +174,12 @@ export function App() {
 		setPeople(await api.people());
 	};
 
-	if (!me) return null;
+	if (!me)
+		return (
+			<div className="grid h-dvh place-items-center">
+				<Juggled size={64} ground="var(--background)" />
+			</div>
+		);
 	// Taken from the list of People, which every screen refetches when a name
 	// changes, so a Person's other screens show their new name too.
 	const own = people.find((p) => p.id === me.id)?.name ?? me.name;
@@ -191,6 +199,7 @@ export function App() {
 						thread={thread}
 						me={me}
 						people={people}
+						loading={!(thread.id in saved)}
 						saved={saved[thread.id] ?? []}
 						outgoing={outgoing.filter((s) => s.message.threadId === thread.id)}
 						side={side}
@@ -215,7 +224,7 @@ function ThreadList({threads, people, open, onOpen, onStart}: {threads: Thread[]
 	return (
 		<>
 			<div className="px-5 pt-5 pb-4">
-				<h1 className="font-serif text-[26px] font-medium tracking-tight">Juggle</h1>
+				<Heading ground="var(--sidebar)" />
 			</div>
 			<div className="flex items-center justify-between px-5 pb-1 text-[11px] font-medium tracking-[0.15em] uppercase opacity-50">
 				Threads
@@ -277,10 +286,12 @@ function ThreadList({threads, people, open, onOpen, onStart}: {threads: Thread[]
 	);
 }
 
-function Reading({thread, me, people, saved, outgoing, side, onSide, onCloseSide, onBack, onRename, onEdit, onDelete, onSend, onResend}: {
+function Reading({thread, me, people, loading, saved, outgoing, side, onSide, onCloseSide, onBack, onRename, onEdit, onDelete, onSend, onResend}: {
 	thread: Thread;
 	me: Person;
 	people: Person[];
+	// Whether the Thread's Messages are still loading the first time it opens.
+	loading: boolean;
 	saved: Message[];
 	outgoing: Shown[];
 	side: string | undefined;
@@ -326,6 +337,7 @@ function Reading({thread, me, people, saved, outgoing, side, onSide, onCloseSide
 					{...common}
 					threadId={thread.id}
 					label="Messages"
+					loading={loading}
 					shown={shown.filter((s) => s.message.place.kind === 'main')}
 					points={thread.seen}
 					looking={!parent || wideScreen}
@@ -364,6 +376,7 @@ function Reading({thread, me, people, saved, outgoing, side, onSide, onCloseSide
 							{...common}
 							threadId={thread.id}
 							label="Messages in the side discussion"
+							loading={false}
 							shown={sideOf(parent.message.id)}
 							points={sidePoints(parent.message.id)}
 							looking
@@ -399,9 +412,11 @@ type SideMark = {count: number; unseen: number; onOpen: () => void};
 
 // One place in a Thread, its main conversation or a side discussion: its
 // Messages, with its own seen point, and a box to write in with its own draft.
-function Conversation({me, people, answered, deleted, onEdit, onDelete, onResend, threadId, label, shown, points, looking, sentHere, draftKey, top, parent, sides, onSend, className, footClassName, small = false}: Common & {
+function Conversation({me, people, answered, deleted, onEdit, onDelete, onResend, threadId, label, loading, shown, points, looking, sentHere, draftKey, top, parent, sides, onSend, className, footClassName, small = false}: Common & {
 	threadId: string;
 	label: string;
+	// Whether the Messages are still loading, shown as Juggled in their place.
+	loading: boolean;
 	shown: Shown[];
 	points: SeenPoint[];
 	looking: boolean;
@@ -451,9 +466,15 @@ function Conversation({me, people, answered, deleted, onEdit, onDelete, onResend
 				<div className={className}>
 					{top}
 					{parent && <div className="mb-6 border-b border-border pb-6 opacity-75">{letter(parent.shown, parent.seen)}</div>}
-					<ol aria-label={label} className={cn('flex flex-col', small ? 'gap-8' : 'gap-12')}>
-						{shown.map((s) => letter(s, s.delivery.kind === 'saved' && seenByEveryoneElse(s.message, points)))}
-					</ol>
+					{loading ? (
+						<div className="grid place-items-center py-16">
+							<Juggled size={44} ground="var(--background)" />
+						</div>
+					) : (
+						<ol aria-label={label} className={cn('flex flex-col', small ? 'gap-8' : 'gap-12')}>
+							{shown.map((s) => letter(s, s.delivery.kind === 'saved' && seenByEveryoneElse(s.message, points)))}
+						</ol>
+					)}
 				</div>
 			</div>
 			<div className={cn('px-4 pt-2 pb-[max(14px,env(safe-area-inset-bottom))]', footClassName)}>
@@ -886,7 +907,7 @@ function AskName({onGive}: {onGive: (name: string) => Promise<void>}) {
 					onGive(text.trim()).catch(() => setFailed(true));
 				}}
 			>
-				<h1 className="font-serif text-[26px] font-medium tracking-tight">Juggle</h1>
+				<Heading ground="var(--background)" />
 				<label className="flex flex-col gap-3">
 					<span className="font-serif text-4xl leading-tight font-medium tracking-tight">What's your name?</span>
 					<input autoFocus maxLength={nameLimit} value={text} onChange={(event) => setText(event.target.value)} className="rounded-xl border border-border bg-card px-4 py-3 font-serif text-[20px] outline-none focus:border-primary/50" />

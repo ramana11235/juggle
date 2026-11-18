@@ -172,3 +172,33 @@ html, body { overscroll-behavior: none; }
 	color: inherit;
 	border-radius: 2px;
 }
+
+/* Juggled: each circle turns once round the orbit, easing so the three bunch
+   and spread, each a little behind the one before. With reduced motion they
+   stand still, evenly spaced. */
+@keyframes orbit-turn {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.toss {
+	transform-origin: 50px 50px;
+	animation: orbit-turn 1.5s cubic-bezier(0.55, 0.1, 0.45, 0.9) infinite;
+}
+.toss.second {
+	animation-delay: -0.18s;
+}
+.toss.third {
+	animation-delay: -0.36s;
+}
+@media (prefers-reduced-motion: reduce) {
+	.toss {
+		animation: none;
+	}
+	.toss.second {
+		transform: rotate(120deg);
+	}
+	.toss.third {
+		transform: rotate(240deg);
+	}
+}
