@@ -6,6 +6,10 @@
 	"name": "juggle",
 	"main": "src/worker/index.ts",
 	"compatibility_date": "2026-11-01",
+	// The Worker runs next to its D1 database in Western Europe, not next to
+	// whoever sent the request, because every request makes database queries
+	// one after another and each would otherwise cross the distance again.
+	"placement": {"region": "aws:eu-west-2"},
 	// The custom domain, behind Access, is the only way in, so the workers.dev
 	// and preview addresses, which Access does not cover, stay off.
 	"workers_dev": false,
