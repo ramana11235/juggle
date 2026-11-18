@@ -192,7 +192,7 @@ export function App() {
 				<ThreadList threads={threads} people={people} open={open} onOpen={go} onStart={start} />
 				<YourName name={ownName} onChange={giveName} />
 			</aside>
-			<main className={cn('h-full min-w-0 flex-1', thread ? 'block' : 'hidden md:block')}>
+			<main className={cn('h-full min-w-0 flex-1 max-md:motion-safe:slide-in', thread ? 'block' : 'hidden md:block')}>
 				{thread && (
 					<Reading
 						key={thread.id}
@@ -363,7 +363,7 @@ function Reading({thread, me, people, loading, saved, outgoing, side, onSide, on
 				/>
 			</div>
 			{parent && (
-				<section aria-label="Side discussion" className="fixed inset-0 z-40 flex flex-col bg-card md:static md:z-auto md:w-[420px] md:shrink-0 md:border-l md:border-border">
+				<section aria-label="Side discussion" className="fixed inset-0 z-40 flex flex-col bg-card max-md:motion-safe:slide-in md:static md:z-auto md:w-[420px] md:shrink-0 md:border-l md:border-border">
 					<div className="flex items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] pb-4">
 						<span className="text-[12px] font-medium tracking-[0.15em] uppercase opacity-60">Side discussion</span>
 						<button onClick={onCloseSide} aria-label="Close" className="opacity-60 hover:opacity-100">
@@ -627,7 +627,7 @@ function Letter({shown, mine, seen, name, answered, highlighted, small, side, de
 	const [failed, setFailed] = useState(false);
 	const time = (at: number) => new Date(at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 	return (
-		<li className="group relative rounded-lg" data-message-id={message.id} data-highlighted={highlighted}>
+		<li className="group relative rounded-lg motion-safe:fade-in" data-message-id={message.id} data-highlighted={highlighted}>
 			{!small && (
 				<span className="absolute top-0 -left-12 hidden size-8 place-items-center rounded-full text-[13px] font-semibold md:grid" style={{background: tint, color: who}}>
 					{initial}
