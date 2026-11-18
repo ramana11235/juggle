@@ -1,5 +1,5 @@
 import {ownWords, type LinkPreview, type Message, type Part, type Person, type SentPart, type SeenPoint, type SeenUpTo, type SendMessage, type Side, type StartThread, type Thread} from '../shared/api';
-import {previewOfPage} from './previews';
+import {oEmbedOf, previewOfOEmbed, previewOfPage} from './previews';
 
 // Every saved moment is later than the last one saved, even within the same
 // millisecond, so Threads and Messages are always in the exact order they
@@ -280,9 +280,10 @@ export async function removePreview(db: D1Database, person: Person, threadId: st
 export async function linkPreview(db: D1Database, url: string, fetchPage: (url: string) => Promise<Response>, now: number): Promise<LinkPreview> {
 	const kept = await db.prepare('SELECT found, site, title, image FROM link_previews WHERE url = ?').bind(url).first<{found: number; site: string; title: string; image: string | null}>();
 	if (kept) return kept.found === 1 ? {kind: 'found', site: kept.site, title: kept.title, image: kept.image === null ? {kind: 'none'} : {kind: 'image', url: kept.image}} : {kind: 'none'};
-	const response = await fetchPage(url).catch(() => undefined);
+	const source = oEmbedOf(url);
+	const response = await fetchPage(source.kind === 'oembed' ? source.url : url).catch(() => undefined);
 	if (!response?.ok) return {kind: 'none'};
-	const preview = await previewOfPage(url, response);
+	const preview = source.kind === 'oembed' ? await previewOfOEmbed(response) : await previewOfPage(url, response);
 	await db
 		.prepare('INSERT OR REPLACE INTO link_previews (url, found, site, title, image, fetched_at) VALUES (?, ?, ?, ?, ?, ?)')
 		.bind(url, preview.kind === 'found' ? 1 : 0, preview.kind === 'found' ? preview.site : '', preview.kind === 'found' ? preview.title : '', preview.kind === 'found' && preview.image.kind === 'image' ? preview.image.url : null, now)

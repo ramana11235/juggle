@@ -27,6 +27,28 @@ export async function previewOfPage(url: string, response: Response): Promise<Li
 	};
 }
 
+// YouTube answers Cloudflare's servers with a page that has no Open Graph
+// tags, so a video's preview is read from the oEmbed address YouTube gives
+// apps, which describes it as JSON. That address describes only videos and
+// playlists, so YouTube's other pages, such as a channel, are read as pages.
+const youTube = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com']);
+const isYouTubeVideo = ({hostname, pathname}: URL) =>
+	hostname === 'youtu.be' || (youTube.has(hostname) && (pathname === '/watch' || pathname === '/playlist' || /^\/(shorts|live)\/./.test(pathname)));
+export const oEmbedOf = (url: string): {kind: 'oembed'; url: string} | {kind: 'page'} =>
+	isYouTubeVideo(new URL(url)) ? {kind: 'oembed', url: `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}`} : {kind: 'page'};
+
+export async function previewOfOEmbed(response: Response): Promise<LinkPreview> {
+	const said = await response.json<{title?: unknown; provider_name?: unknown; thumbnail_url?: unknown}>().catch(() => ({}) as Record<string, unknown>);
+	if (typeof said.title !== 'string' || said.title.trim() === '') return {kind: 'none'};
+	const image = typeof said.thumbnail_url === 'string' ? said.thumbnail_url : '';
+	return {
+		kind: 'found',
+		site: typeof said.provider_name === 'string' && said.provider_name.trim() ? said.provider_name.trim() : 'YouTube',
+		title: said.title.trim(),
+		image: onTheWeb(image) ? {kind: 'image', url: image} : {kind: 'none'},
+	};
+}
+
 // HTMLRewriter gives attributes and text as written, with entities such as &amp;.
 const entities: Record<string, string> = {amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'", nbsp: ' '};
 const decode = (text: string) =>

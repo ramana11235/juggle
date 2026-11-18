@@ -105,6 +105,53 @@ describe('Previews are kept', () => {
 	});
 });
 
+describe('A YouTube link\'s preview', () => {
+	// YouTube answers Cloudflare's servers with a page that has no Open Graph
+	// tags, so its videos are read from the oEmbed address it gives apps.
+	const oEmbed = (fetched: string[]) => async (url: string) => {
+		fetched.push(url);
+		return Response.json({title: 'Me at the zoo', provider_name: 'YouTube', thumbnail_url: 'https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg'});
+	};
+
+	it('is the video\'s title and thumbnail, read from YouTube\'s oEmbed address', async () => {
+		const fetched: string[] = [];
+		const found = await linkPreview(env.DB, 'https://www.youtube.com/watch?v=jNQXAC9IVRw', oEmbed(fetched), 1000);
+		expect([found, fetched]).toEqual([
+			{kind: 'found', site: 'YouTube', title: 'Me at the zoo', image: {kind: 'image', url: 'https://i.ytimg.com/vi/jNQXAC9IVRw/hqdefault.jpg'}},
+			[`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent('https://www.youtube.com/watch?v=jNQXAC9IVRw')}`],
+		]);
+	});
+
+	it('is read the same way for a short youtu.be link and a phone\'s m.youtube.com link', async () => {
+		const fetched: string[] = [];
+		await linkPreview(env.DB, 'https://youtu.be/jNQXAC9IVRw', oEmbed(fetched), 1000);
+		await linkPreview(env.DB, 'https://m.youtube.com/watch?v=jNQXAC9IVRw', oEmbed(fetched), 1000);
+		expect(fetched.map((url) => new URL(url).pathname)).toEqual(['/oembed', '/oembed']);
+	});
+
+	it('is read from the page itself for a YouTube link that is not a video, such as a channel', async () => {
+		const fetched: string[] = [];
+		const pages = async (url: string) => {
+			fetched.push(url);
+			return page('<meta property="og:title" content="A channel">');
+		};
+		await linkPreview(env.DB, 'https://www.youtube.com/@channel', pages, 1000);
+		await linkPreview(env.DB, 'https://youtu.be/jNQXAC9IVRw', pages, 1000);
+		expect(fetched.map((url) => new URL(url).pathname)).toEqual(['/@channel', '/oembed']);
+	});
+
+	it('is none for a video YouTube will not describe, such as a private one, and is tried again', async () => {
+		let asked = 0;
+		const missing = async () => {
+			asked += 1;
+			return new Response('Unauthorized', {status: 401});
+		};
+		expect(await linkPreview(env.DB, 'https://www.youtube.com/watch?v=private', missing, 1000)).toEqual({kind: 'none'});
+		await linkPreview(env.DB, 'https://www.youtube.com/watch?v=private', missing, 2000);
+		expect(asked).toBe(2);
+	});
+});
+
 describe('Fetching only from one origin', () => {
 	it('finds no page anywhere else, so a test server never reaches the web', async () => {
 		expect(await linkPreview(env.DB, 'https://www.youtube.com/watch?v=abc', onlyFrom('http://localhost:5192'), 1000)).toEqual({kind: 'none'});
