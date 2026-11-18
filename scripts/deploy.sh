@@ -15,6 +15,7 @@ done
 npx wrangler d1 migrations apply DB --remote -c wrangler.beta.jsonc
 WRANGLER_CONFIG=wrangler.beta.jsonc npx vite build
 npx wrangler deploy
+node scripts/wake-beta.mjs
 JUGGLE_TARGET=beta npx playwright test
 
 # D1 keeps every database's history, so a bad migration is undone by
