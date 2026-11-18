@@ -11,7 +11,7 @@ test('the app follows the device in dark mode', async ({as}) => {
 	await expect(page.locator('html')).toHaveClass(/dark/);
 });
 
-test('a Thread one Person starts opens for them and is in the other Person\'s list', async ({as}) => {
+test('a Thread one Person starts opens for them and is in the other Person\'s list', {tag: '@beta'}, async ({as}) => {
 	const user1 = await as('user-1@juggle.test');
 	const user2 = await as('user-2@juggle.test');
 	await user1.getByRole('button', {name: 'New Thread'}).click();

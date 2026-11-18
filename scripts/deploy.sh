@@ -1,18 +1,16 @@
 #!/usr/bin/env bash
 # Deploys Juggle in an order that never skips a step. CI runs it on every
-# push to main. The beta copy is deployed and tested end to end through real
-# Access first, and only if that passes is the real Juggle touched: the point
-# its database can be restored to is printed, migrations are applied, and it
-# is deployed. It stops at the first step that fails.
+# push to main, once the checks and every local test have passed. The beta
+# copy is deployed and its tests run through real Access first, and only if
+# they pass is the real Juggle touched: the point its database can be
+# restored to is printed, migrations are applied, and it is deployed. It
+# stops at the first step that fails.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 for file in wrangler.jsonc wrangler.beta.jsonc beta-tokens.json; do
 	[ -f "$file" ] || { echo "$file is missing: it holds hosting config that git does not keep." >&2; exit 1; }
 done
-
-npm run typecheck
-npm test
 
 npx wrangler d1 migrations apply DB --remote -c wrangler.beta.jsonc
 WRANGLER_CONFIG=wrangler.beta.jsonc npx vite build

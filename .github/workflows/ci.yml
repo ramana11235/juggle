@@ -1,5 +1,5 @@
-# A pull request runs the checks and tests. A push to main runs the deploy,
-# which runs the same checks and tests first and stops at the first failure.
+# Every pull request and push to main runs the checks and every browser test
+# against a local Juggle. A push to main then deploys, once all of them pass.
 name: CI
 
 on:
@@ -8,8 +8,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    if: github.event_name == 'pull_request'
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,15 +17,40 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium webkit
       - run: npm run typecheck
-      - run: npm test
+      - run: node scripts/check-tests.mjs
+      - run: npx vitest run
+
+  # Each local browser test has a Juggle of its own, so the suite is split
+  # across machines that run at the same time.
+  browser:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npx playwright test --shard=${{ matrix.shard }}/4
 
   deploy:
     if: github.event_name == 'push'
+    needs: [checks, browser]
     runs-on: ubuntu-latest
-    # Every deploy's browser tests share beta's one database, so only one
-    # deploy runs at a time, and a waiting one is never cancelled.
+    # Every deploy's beta tests share beta's one database, so only one deploy
+    # runs at a time, and a waiting one is never cancelled.
     concurrency:
       group: deploy
       cancel-in-progress: false
@@ -50,5 +74,11 @@ jobs:
           printf '%s' "$BETA_TOKENS_JSON" > beta-tokens.json
           node scripts/mask-hosting-values.mjs
       - run: npm ci
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run deploy

@@ -24,7 +24,7 @@ test('a Thread one Person starts appears in the other Person\'s list without a r
 	await expect(threadList(user2).getByText('Free will')).toBeVisible();
 });
 
-test('a Message arrives in the other Person\'s open Thread without a reload', async ({as}) => {
+test('a Message arrives in the other Person\'s open Thread without a reload', {tag: '@beta'}, async ({as}) => {
 	const user1 = await as('user-1@juggle.test');
 	const user2 = await as('user-2@juggle.test');
 	await startThread(user1, 'Free will');
@@ -35,7 +35,7 @@ test('a Message arrives in the other Person\'s open Thread without a reload', as
 	await expect(messages(user2).first()).toContainText('What do we mean by free?');
 });
 
-test('a screen whose connection dropped catches up when it connects again', async ({as}) => {
+test('a screen whose connection dropped catches up when it connects again', {tag: '@beta'}, async ({as}) => {
 	const user1 = await as('user-1@juggle.test');
 	const user2 = await as('user-2@juggle.test');
 	await startThread(user1, 'Free will');

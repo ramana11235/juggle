@@ -36,7 +36,7 @@ async function signInEnds(page: Page, action: () => Promise<void>) {
 
 const messages = (page: Page) => page.getByRole('list', {name: 'Messages'}).getByRole('listitem');
 
-test('a Message sent after sign-in ended is kept, and sends once signed in again', async ({as}) => {
+test('a Message sent after sign-in ended is kept, and sends once signed in again', {tag: '@beta'}, async ({as}) => {
 	const user1 = await as('user-1@juggle.test');
 	await startThread(user1, 'Free will');
 	await signInEnds(user1, async () => {
@@ -52,7 +52,7 @@ test('a Message sent after sign-in ended is kept, and sends once signed in again
 	await expect(messages(user1)).toHaveCount(1);
 });
 
-test('what a Person was writing when sign-in ended is still in the text box', async ({as}) => {
+test('what a Person was writing when sign-in ended is still in the text box', {tag: '@beta'}, async ({as}) => {
 	const user1 = await as('user-1@juggle.test');
 	await startThread(user1, 'Free will');
 	await user1.getByRole('textbox', {name: 'Message'}).fill('Half a thought');

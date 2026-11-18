@@ -25,7 +25,7 @@ async function sendInPanel(page: Page, text: string) {
 	await settled(page);
 }
 
-test('a side discussion started under a Message reaches the other Person live, counted under that Message', async ({as}) => {
+test('a side discussion started under a Message reaches the other Person live, counted under that Message', {tag: '@beta'}, async ({as}) => {
 	const user1 = await as('user-1@juggle.test');
 	const user2 = await as('user-2@juggle.test');
 	await startThread(user1, 'Free will');

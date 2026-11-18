@@ -10,6 +10,9 @@ export default defineConfig({
 	testDir: 'test/browser',
 	globalTeardown: './test/browser/leftovers.ts',
 	retries: 0,
+	// Beta is for what only real Cloudflare can show, such as Access, so only
+	// the tests tagged @beta run there. Every test runs against a local Juggle.
+	grep: target === 'beta' ? /@beta/ : undefined,
 	fullyParallel: target === 'local',
 	workers: target === 'local' ? undefined : 1,
 	reporter: process.env.CI ? 'github' : 'list',

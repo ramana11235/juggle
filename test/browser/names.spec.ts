@@ -31,7 +31,7 @@ test('each Message shows its author\'s name', async ({as}) => {
 	await expect(messages(user2).first()).toContainText('user-1');
 });
 
-test('a name a Person changes shows on another Person\'s screen without a reload', async ({as}) => {
+test('a name a Person changes shows on another Person\'s screen without a reload', {tag: '@beta'}, async ({as}) => {
 	const user1 = await as('user-1@juggle.test');
 	const user2 = await as('user-2@juggle.test');
 	await user1.getByRole('button', {name: 'New Thread'}).click();
