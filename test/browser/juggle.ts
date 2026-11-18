@@ -1,6 +1,5 @@
 import {spawn, spawnSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
-import {createServer} from 'node:net';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {test as base, expect, type Browser, type BrowserContext, type Page} from '@playwright/test';
@@ -73,15 +72,19 @@ async function onLaptop(browser: Browser, options: object, opened: BrowserContex
 	// stopped and its data thrown away.
 	try {
 		run(['wrangler', 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', state, '-c', 'wrangler.example.jsonc']);
-		const port = await freePort();
-		const started = spawn('npx', ['vite', '--port', String(port), '--strictPort'], {
+		// Port 0 lets Vite take any free port itself, so no other process can
+		// claim it between choosing it and starting; the port is read from what Vite prints.
+		const started = spawn('npx', ['vite', '--port', '0', '--strictPort'], {
 			env: {...process.env, JUGGLE_LOCAL_STATE: state, NO_COLOR: '1', FORCE_COLOR: '0'},
 			detached: true,
 		});
 		server = started;
-		await new Promise<void>((resolve, reject) => {
+		const port = await new Promise<string>((resolve, reject) => {
 			let errors = '';
-			started.stdout!.on('data', (chunk: Buffer) => chunk.toString().includes('Local:') && resolve());
+			started.stdout!.on('data', (chunk: Buffer) => {
+				const local = /Local:\s+http:\/\/localhost:(\d+)/.exec(chunk.toString());
+				if (local) resolve(local[1]);
+			});
 			started.stderr!.on('data', (chunk: Buffer) => (errors += chunk.toString()));
 			started.on('exit', (code) => reject(new Error(`vite stopped with ${code}: ${errors}`)));
 		});
@@ -133,11 +136,3 @@ export function run(args: string[]): string {
 	return result.stdout;
 }
 
-function freePort(): Promise<number> {
-	return new Promise((resolve) => {
-		const server = createServer().listen(0, () => {
-			const {port} = server.address() as {port: number};
-			server.close(() => resolve(port));
-		});
-	});
-}
