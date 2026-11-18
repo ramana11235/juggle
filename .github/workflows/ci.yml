@@ -17,7 +17,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  checks:
+  check-code:
+    name: check code
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,15 +27,31 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - run: node scripts/check-tests.mjs
-      - run: node scripts/check-design.mjs
-      - run: npx vitest run
+      - name: Check the types
+        run: npm run typecheck
+      - name: Check the tests follow the test rules
+        run: node scripts/check-tests.mjs
+      - name: Check the screens follow the design rules
+        run: node scripts/check-design.mjs
+
+  test-worker:
+    name: test the Worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Test the Worker in workerd
+        run: npx vitest run
 
   # The browser jobs run in Playwright's own image for the version the
   # project uses, which holds the browsers and the system packages they need,
   # so no job installs them.
   playwright:
+    name: find the Playwright version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -45,7 +62,8 @@ jobs:
 
   # Each local browser test has a Juggle of its own, so the suite is split
   # across machines that run at the same time.
-  browser:
+  test-locally:
+    name: test locally (${{ matrix.shard }}/4)
     needs: playwright
     runs-on: ubuntu-latest
     container: mcr.microsoft.com/playwright:v${{ needs.playwright.outputs.version }}
@@ -60,12 +78,13 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright test --shard=${{ matrix.shard }}/4
+      - name: Test in browsers against a local Juggle
+        run: npx playwright test --shard=${{ matrix.shard }}/4
 
   deploy-beta:
     name: deploy beta
     if: github.event_name == 'push'
-    needs: [checks, browser]
+    needs: [check-code, test-worker, test-locally]
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
