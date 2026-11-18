@@ -40,7 +40,10 @@ export type Edited = {kind: 'never'} | {kind: 'at'; at: number};
 export type Place = {kind: 'main'} | {kind: 'side'; messageId: string};
 // body is the Message's own words, its text parts joined, as the list of
 // Threads shows them. A deleted Message has no words and no parts.
-export type Message = {id: string; threadId: string; place: Place; authorId: string; body: string; parts: Part[]; sentAt: number; edited: Edited; deleted: boolean};
+// Whether a Message shows the preview of its first link. Its author can
+// remove the preview for everyone.
+export type PreviewShown = {kind: 'shown'} | {kind: 'removed'};
+export type Message = {id: string; threadId: string; place: Place; authorId: string; body: string; parts: Part[]; sentAt: number; edited: Edited; deleted: boolean; preview: PreviewShown};
 
 export type SendMessage = {id: string; parts: SentPart[]; place: Place};
 export type EditMessage = {parts: SentPart[]};
@@ -60,3 +63,21 @@ export const messageLength = (parts: Part[]) => parts.reduce((total, p) => total
 // Message, a change to the list of Threads, such as a new one, or a change
 // to someone's name.
 export type LiveEvent = {kind: 'message'; message: Message} | {kind: 'threads_changed'} | {kind: 'people_changed'};
+
+// A link's preview, from the Open Graph tags its page publishes for this, or
+// none when the page has no title or could not be read.
+export type LinkPreview = {kind: 'found'; site: string; title: string; image: {kind: 'none'} | {kind: 'image'; url: string}} | {kind: 'none'};
+
+// The first web address in a Message's words, which is the one it shows a
+// preview of. The punctuation that ends a sentence or a Markdown link is not
+// part of it, though brackets the address opens itself are.
+export function firstLink(words: string): {kind: 'none'} | {kind: 'link'; url: string} {
+	let url = /https?:\/\/[^\s<>"'\]]+/.exec(words)?.[0];
+	if (url === undefined) return {kind: 'none'};
+	const count = (text: string, c: string) => text.split(c).length - 1;
+	while (/[.,!?;:'"]$/.test(url) || (url.endsWith(')') && count(url, ')') > count(url, '('))) url = url.slice(0, -1);
+	return {kind: 'link', url};
+}
+
+// Whether an address is one a preview may be fetched from or point to.
+export const onTheWeb = (address: string) => URL.canParse(address) && ['http:', 'https:'].includes(new URL(address).protocol);

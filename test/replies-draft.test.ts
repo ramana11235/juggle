@@ -34,7 +34,7 @@ describe('a Reply being written', () => {
 
 describe('passages answered', () => {
 	it('are gathered for each Message quoted, but not from quotes of a whole Message', () => {
-		const reply = (parts: Message['parts']): Message => ({id: crypto.randomUUID(), threadId: 't', place: {kind: 'main'}, authorId: 'a', body: '', parts, sentAt: 1, edited: {kind: 'never'}, deleted: false});
+		const reply = (parts: Message['parts']): Message => ({id: crypto.randomUUID(), threadId: 't', place: {kind: 'main'}, authorId: 'a', body: '', parts, sentAt: 1, edited: {kind: 'never'}, deleted: false, preview: {kind: 'shown'}});
 		const answered = answeredPassages([reply([passage('one'), text('x')]), reply([{kind: 'whole', messageId: quoted, text: 'all'}, passage('two')])]);
 		expect(answered.get(quoted)).toEqual(['one', 'two']);
 	});

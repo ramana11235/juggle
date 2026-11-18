@@ -1,4 +1,5 @@
-import {ownWords, type Message, type Part, type Person, type SentPart, type SeenPoint, type SeenUpTo, type SendMessage, type Side, type StartThread, type Thread} from '../shared/api';
+import {ownWords, type LinkPreview, type Message, type Part, type Person, type SentPart, type SeenPoint, type SeenUpTo, type SendMessage, type Side, type StartThread, type Thread} from '../shared/api';
+import {previewOfPage} from './previews';
 
 // Every saved moment is later than the last one saved, even within the same
 // millisecond, so Threads and Messages are always in the exact order they
@@ -128,8 +129,8 @@ async function isIn(db: D1Database, person: Person, threadId: string): Promise<b
 	return (await db.prepare('SELECT 1 FROM thread_people WHERE thread_id = ? AND person_id = ?').bind(threadId, person.id).first()) !== null;
 }
 
-const messageColumns = 'id, thread_id AS threadId, side_of AS sideOf, author_id AS authorId, body, sent_at AS sentAt, edited_at AS editedAt, deleted_at AS deletedAt';
-type MessageRow = Omit<Message, 'place' | 'parts' | 'edited' | 'deleted'> & {sideOf: string | null; editedAt: number | null; deletedAt: number | null};
+const messageColumns = 'id, thread_id AS threadId, side_of AS sideOf, author_id AS authorId, body, sent_at AS sentAt, edited_at AS editedAt, deleted_at AS deletedAt, preview_removed_at AS previewRemovedAt';
+type MessageRow = Omit<Message, 'place' | 'parts' | 'edited' | 'deleted' | 'preview'> & {sideOf: string | null; editedAt: number | null; deletedAt: number | null; previewRemovedAt: number | null};
 type PartRow = {messageId: string; kind: SentPart['kind']; quotedId: string | null; text: string; quotedDeletedAt: number | null};
 const partsOf = (where: string) =>
 	`SELECT p.message_id AS messageId, p.kind, p.quoted_id AS quotedId, p.text, q.deleted_at AS quotedDeletedAt
@@ -148,12 +149,13 @@ function withParts(rows: MessageRow[], partRows: PartRow[]): Message[] {
 					: {kind: row.kind, messageId: row.quotedId!, text: row.text};
 		parts.set(row.messageId, [...(parts.get(row.messageId) ?? []), part]);
 	}
-	return rows.map(({sideOf, editedAt, deletedAt, ...row}) => ({
+	return rows.map(({sideOf, editedAt, deletedAt, previewRemovedAt, ...row}) => ({
 		...row,
 		place: sideOf === null ? {kind: 'main'} : {kind: 'side', messageId: sideOf},
 		parts: deletedAt !== null ? [] : (parts.get(row.id) ?? [{kind: 'text', text: row.body}]),
 		edited: editedAt === null ? {kind: 'never'} : {kind: 'at', at: editedAt},
 		deleted: deletedAt !== null,
+		preview: previewRemovedAt === null ? {kind: 'shown'} : {kind: 'removed'},
 	}));
 }
 
@@ -260,6 +262,32 @@ export async function deleteMessage(db: D1Database, person: Person, threadId: st
 		db.prepare("UPDATE message_parts SET text = '' WHERE quoted_id = ?").bind(id),
 	]);
 	return {kind: 'changed', message: (await readMessage(db, id))!};
+}
+
+// Removes the preview of a Person's own Message's link, for everyone.
+export async function removePreview(db: D1Database, person: Person, threadId: string, id: string, now: number): Promise<Changed> {
+	const own = await ownMessage(db, person, threadId, id);
+	if (own.kind !== 'own') return own;
+	await db.prepare('UPDATE messages SET preview_removed_at = ? WHERE id = ? AND preview_removed_at IS NULL').bind(now, id).run();
+	return {kind: 'changed', message: (await readMessage(db, id))!};
+}
+
+// A link's preview, read from its page the first time it is asked for and
+// kept after that, including that the page had none. A page that could not
+// be reached or answered with an error is not kept, so it is tried again.
+// shortcut: a kept preview never changes, so a page whose title or picture
+// changes later keeps its first preview; refetch after an age if that matters.
+export async function linkPreview(db: D1Database, url: string, fetchPage: (url: string) => Promise<Response>, now: number): Promise<LinkPreview> {
+	const kept = await db.prepare('SELECT found, site, title, image FROM link_previews WHERE url = ?').bind(url).first<{found: number; site: string; title: string; image: string | null}>();
+	if (kept) return kept.found === 1 ? {kind: 'found', site: kept.site, title: kept.title, image: kept.image === null ? {kind: 'none'} : {kind: 'image', url: kept.image}} : {kind: 'none'};
+	const response = await fetchPage(url).catch(() => undefined);
+	if (!response?.ok) return {kind: 'none'};
+	const preview = await previewOfPage(url, response);
+	await db
+		.prepare('INSERT OR REPLACE INTO link_previews (url, found, site, title, image, fetched_at) VALUES (?, ?, ?, ?, ?, ?)')
+		.bind(url, preview.kind === 'found' ? 1 : 0, preview.kind === 'found' ? preview.site : '', preview.kind === 'found' ? preview.title : '', preview.kind === 'found' && preview.image.kind === 'image' ? preview.image.url : null, now)
+		.run();
+	return preview;
 }
 
 // The ids of the People in a Thread, who are told when something in it changes.

@@ -21,6 +21,10 @@
 		// How the Worker learns who is asking: "access" on Cloudflare, "local"
 		// for development and tests, where Access is not in front.
 		"SIGN_IN": "local",
+		// Where the Worker may fetch a link's page for its preview: "the_web",
+		// or "this_juggle", which each browser test's server uses so no test
+		// reaches outside it. A config that leaves it out fetches from the web.
+		"PREVIEWS_FROM": "the_web",
 		"ACCESS_TEAM": "https://your-team.cloudflareaccess.com",
 		"ACCESS_AUD": "your-access-app-audience-tag",
 		// The service tokens that sign in as test People, by client id. Only the

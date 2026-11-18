@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import type {Message, SeenPoint} from '../src/shared/api';
 import {firstUnseen, seenByEveryoneElse, unseenCount} from '../src/shared/seen';
 
-const message = (id: string, authorId: string, sentAt: number): Message => ({id, threadId: 't', place: {kind: 'main'}, authorId, body: id, parts: [{kind: 'text', text: id}], sentAt, edited: {kind: 'never'}, deleted: false});
+const message = (id: string, authorId: string, sentAt: number): Message => ({id, threadId: 't', place: {kind: 'main'}, authorId, body: id, parts: [{kind: 'text', text: id}], sentAt, edited: {kind: 'never'}, deleted: false, preview: {kind: 'shown'}});
 const point = (personId: string, sentAt: number | 'nothing'): SeenPoint => ({personId, upTo: sentAt === 'nothing' ? {kind: 'nothing'} : {kind: 'message', sentAt}});
 
 describe('a Message is seen by everyone else', () => {

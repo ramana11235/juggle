@@ -1,10 +1,11 @@
 import {Menu} from '@base-ui/react/menu';
 import {AlertCircle, ArrowLeft, Check, CheckCheck, Clock, MessageSquareText, MoreHorizontal, Pencil, Plus, Quote as QuoteIcon, Trash2, X} from 'lucide-react';
 import {useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode} from 'react';
-import {bodyLimit, messageLength, nameLimit, ownWords, titleLimit, type LiveEvent, type Message, type Person, type Place, type Quote, type SentPart, type SeenPoint, type SeenUpTo, type Thread} from '../shared/api';
+import {bodyLimit, firstLink, messageLength, nameLimit, ownWords, titleLimit, type LiveEvent, type Message, type Person, type Place, type Quote, type SentPart, type SeenPoint, type SeenUpTo, type Thread} from '../shared/api';
 import {firstUnseen, seenByEveryoneElse, unseenCount} from '../shared/seen';
 import {api} from './api';
 import {keep, kept} from './kept';
+import {LinkCard} from './LinkCard';
 import {Markdown, PlainText} from './Markdown';
 import {answeredPassages, draftFrom, draftOf, emptyDraft, toSend, withoutPart, withQuote, type Draft} from './replies';
 import {cn} from './lib/utils';
@@ -211,7 +212,8 @@ export function App() {
 						onRename={(title) => rename(thread.id, title)}
 						onEdit={(message, parts) => change(api.edit(message, {parts}))}
 						onDelete={(message) => change(api.remove(message))}
-						onSend={(parts, place) => void deliver({message: {id: crypto.randomUUID(), threadId: thread.id, place, authorId: me.id, body: ownWords(parts), parts, sentAt: Date.now(), edited: {kind: 'never'}, deleted: false}, delivery: {kind: 'sending'}})}
+						onRemovePreview={(message) => change(api.removePreview(message))}
+						onSend={(parts, place) => void deliver({message: {id: crypto.randomUUID(), threadId: thread.id, place, authorId: me.id, body: ownWords(parts), parts, sentAt: Date.now(), edited: {kind: 'never'}, deleted: false, preview: {kind: 'shown'}}, delivery: {kind: 'sending'}})}
 						onResend={(shown) => void deliver(shown)}
 					/>
 				)}
@@ -288,7 +290,7 @@ function ThreadList({threads, people, open, onOpen, onStart}: {threads: Thread[]
 	);
 }
 
-function Reading({thread, me, people, loading, saved, outgoing, side, onSide, onCloseSide, onBack, onRename, onEdit, onDelete, onSend, onResend}: {
+function Reading({thread, me, people, loading, saved, outgoing, side, onSide, onCloseSide, onBack, onRename, onEdit, onDelete, onRemovePreview, onSend, onResend}: {
 	thread: Thread;
 	me: Person;
 	people: Person[];
@@ -303,6 +305,7 @@ function Reading({thread, me, people, loading, saved, outgoing, side, onSide, on
 	onRename: (title: string) => Promise<void>;
 	onEdit: (message: Message, parts: SentPart[]) => Promise<void>;
 	onDelete: (message: Message) => Promise<void>;
+	onRemovePreview: (message: Message) => Promise<void>;
 	onSend: (parts: SentPart[], place: Place) => void;
 	onResend: (shown: Shown) => void;
 }) {
@@ -325,6 +328,7 @@ function Reading({thread, me, people, loading, saved, outgoing, side, onSide, on
 		deleted: new Set(shown.filter((s) => s.message.deleted).map((s) => s.message.id)),
 		onEdit,
 		onDelete,
+		onRemovePreview,
 		onResend,
 	};
 	const sentIn = (place: Place) => outgoing.filter((s) => samePlace(s.message.place, place)).length;
@@ -433,13 +437,14 @@ type Common = {
 	deleted: Set<string>;
 	onEdit: (message: Message, parts: SentPart[]) => Promise<void>;
 	onDelete: (message: Message) => Promise<void>;
+	onRemovePreview: (message: Message) => Promise<void>;
 	onResend: (shown: Shown) => void;
 };
 type SideMark = {count: number; unseen: number; onOpen: () => void};
 
 // One place in a Thread, its main conversation or a side discussion: its
 // Messages, with its own seen point, and a box to write in with its own draft.
-function Conversation({me, people, answered, deleted, onEdit, onDelete, onResend, threadId, label, loading, shown, points, looking, sentHere, draftKey, top, parent, sides, onSend, className, footClassName, small = false}: Common & {
+function Conversation({me, people, answered, deleted, onEdit, onDelete, onRemovePreview, onResend, threadId, label, loading, shown, points, looking, sentHere, draftKey, top, parent, sides, onSend, className, footClassName, small = false}: Common & {
 	threadId: string;
 	label: string;
 	// Whether the Messages are still loading, shown as Juggled in their place.
@@ -494,6 +499,7 @@ function Conversation({me, people, answered, deleted, onEdit, onDelete, onResend
 			deletedQuotes={deleted}
 			onEdit={(parts) => onEdit(s.message, parts)}
 			onDelete={() => onDelete(s.message)}
+			onRemovePreview={() => onRemovePreview(s.message)}
 			onResend={() => onResend(s)}
 		/>
 	);
@@ -644,7 +650,7 @@ function pointOf(points: SeenPoint[], me: Person): SeenUpTo {
 
 // A Message in the main conversation can have a side discussion under it,
 // shown as how many Messages it holds and how many of those are unseen.
-function Letter({shown, mine, seen, name, answered, highlighted, small, side, deletedQuotes, onReply, onGoTo, onEdit, onDelete, onResend}: {
+function Letter({shown, mine, seen, name, answered, highlighted, small, side, deletedQuotes, onReply, onGoTo, onEdit, onDelete, onRemovePreview, onResend}: {
 	shown: Shown;
 	mine: boolean;
 	seen: boolean;
@@ -658,9 +664,11 @@ function Letter({shown, mine, seen, name, answered, highlighted, small, side, de
 	onGoTo: (id: string) => void;
 	onEdit: (parts: SentPart[]) => Promise<void>;
 	onDelete: () => Promise<void>;
+	onRemovePreview: () => Promise<void>;
 	onResend: () => void;
 }) {
 	const {message, delivery} = shown;
+	const link = firstLink(message.body);
 	const initial = initialOf(name);
 	const who = mine ? 'var(--me)' : 'var(--them)';
 	const tint = mine ? 'var(--me-tint)' : 'var(--them-tint)';
@@ -721,6 +729,9 @@ function Letter({shown, mine, seen, name, answered, highlighted, small, side, de
 								{part.kind === 'deleted' || deletedQuotes.has(part.messageId) ? 'This message was deleted' : part.kind === 'whole' ? <PlainText text={part.text} /> : part.text}
 							</button>
 						),
+					)}
+					{link.kind === 'link' && message.preview.kind === 'shown' && delivery.kind === 'saved' && (
+						<LinkCard url={link.url} mine={mine} onRemove={() => void onRemovePreview().catch(() => setFailed(true))} />
 					)}
 				</div>
 			)}

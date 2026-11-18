@@ -25,6 +25,10 @@ _Avoid_: Response, quote
 The **Messages** kept under one **Message**, out of the **Thread**'s main conversation, as a Slack thread is kept under a message. The name may change.
 _Avoid_: Thread, sub-thread, replies
 
+**Link preview**:
+The card under a **Message** showing the picture, title and site of the page its first link goes to, as chat apps show one.
+_Avoid_: Unfurl, embed
+
 ## Relationships
 
 - A **Thread** holds many **Messages**, in the order they were sent.
@@ -36,6 +40,7 @@ _Avoid_: Thread, sub-thread, replies
 - A **Message** is seen by a **Person** once it has been on their screen; each **Person** has one point in each **Thread**, and in each **Side discussion**, up to which they have seen.
 - A **Reply** keeps its own copy of each passage it quotes, so an edit to the original leaves the quoted words as they were answered. Deleting a **Message** removes its words from every **Reply** that quotes it, which then shows only that it was deleted.
 - A **Message** in a **Thread**'s main conversation can have one **Side discussion** under it; a **Message** inside a **Side discussion** cannot.
+- A **Message** shows one **Link preview**, for its first link, when that page has one. Only the **Message**'s author can remove it, which removes it for everyone.
 
 ## Flagged ambiguities
 

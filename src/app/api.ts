@@ -1,4 +1,4 @@
-import type {EditMessage, Message, Person, SendMessage, StartThread, Thread} from '../shared/api';
+import type {EditMessage, LinkPreview, Message, Person, SendMessage, StartThread, Thread} from '../shared/api';
 import {keep, kept} from './kept';
 import {counted} from './settled';
 
@@ -39,5 +39,7 @@ export const api = counted({
 	rename: (threadId: string, title: string) => call<{title: string}>(`/api/threads/${threadId}/title`, {method: 'PUT', body: JSON.stringify({title})}),
 	edit: (message: Message, edit: EditMessage) => call<Message>(`/api/threads/${message.threadId}/messages/${message.id}`, {method: 'PUT', body: JSON.stringify(edit)}),
 	remove: (message: Message) => call<Message>(`/api/threads/${message.threadId}/messages/${message.id}`, {method: 'DELETE'}),
+	removePreview: (message: Message) => call<Message>(`/api/threads/${message.threadId}/messages/${message.id}/preview`, {method: 'DELETE'}),
+	preview: (url: string) => call<LinkPreview>(`/api/previews?url=${encodeURIComponent(url)}`),
 	send: (threadId: string, send: SendMessage) => call<Message>(`/api/threads/${threadId}/messages`, {method: 'POST', body: JSON.stringify(send)}),
 });

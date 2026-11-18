@@ -1,7 +1,9 @@
 import type {LiveEvent} from '../shared/api';
 import {checkEditMessage, checkName, checkRename, checkScreenError, checkSeeMessage, checkSendMessage, checkStartThread} from './rules';
-import {deleteMessage, editMessage, everyone, giveName, joinPerson, messagesIn, peopleIn, renameThread, seeMessage, sendMessage, startThread, threadsOf} from './store';
+import {deleteMessage, editMessage, everyone, linkPreview, removePreview, giveName, joinPerson, messagesIn, peopleIn, renameThread, seeMessage, sendMessage, startThread, threadsOf} from './store';
+import {fetchPage, onlyFrom} from './previews';
 import {localSignInCookie, whoIsAsking} from './who';
+import {onTheWeb} from '../shared/api';
 
 export {PersonScreens} from './screens';
 
@@ -9,6 +11,7 @@ const messagesPath = /^\/api\/threads\/([^/]+)\/messages$/;
 const seenPath = /^\/api\/threads\/([^/]+)\/seen$/;
 const titlePath = /^\/api\/threads\/([^/]+)\/title$/;
 const messagePath = /^\/api\/threads\/([^/]+)\/messages\/([^/]+)$/;
+const previewPath = /^\/api\/threads\/([^/]+)\/messages\/([^/]+)\/preview$/;
 
 export default {
 	async fetch(request, env): Promise<Response> {
@@ -23,6 +26,15 @@ export default {
 			return new Response(null, {
 				status: 302,
 				headers: {Location: '/', 'Set-Cookie': `${localSignInCookie}=${encodeURIComponent(email)}; Path=/; SameSite=Lax`},
+			});
+		}
+
+		// Development only: a page with a preview, for tests to link to. Its
+		// title and picture are given in its address.
+		if (route === 'GET /api/local/page' && env.SIGN_IN === 'local') {
+			const tag = (property: string, value: string | null) => (value === null ? '' : `<meta property="${property}" content="${value.replace(/[&"<>]/g, (c) => `&#${c.charCodeAt(0)};`)}">`);
+			return new Response(`<!doctype html><html><head>${tag('og:title', url.searchParams.get('title'))}${tag('og:site_name', url.searchParams.get('site'))}${tag('og:image', url.searchParams.get('image'))}</head><body></body></html>`, {
+				headers: {'Content-Type': 'text/html'},
 			});
 		}
 
@@ -54,6 +66,12 @@ export default {
 				const result = await startThread(env.DB, person, checked.value, Date.now());
 				if (result.kind === 'started') await tellEveryoneIn(env, result.thread.id, {kind: 'threads_changed'});
 				return result.kind === 'started' ? Response.json(result.thread) : Response.json({error: 'That id is already used'}, {status: 409});
+			}
+			case 'GET /api/previews': {
+				const link = url.searchParams.get('url') ?? '';
+				if (!onTheWeb(link)) return Response.json({error: 'A preview is only of a web address'}, {status: 400});
+				const fetcher = env.PREVIEWS_FROM === 'this_juggle' ? onlyFrom(url.origin) : fetchPage;
+				return Response.json(await linkPreview(env.DB, link, fetcher, Date.now()));
 			}
 			case 'POST /api/errors': {
 				const checked = checkScreenError(await request.json().catch(() => null));
@@ -108,6 +126,21 @@ export default {
 					return Response.json({error: 'That Message was deleted'}, {status: 409});
 				case 'quotes_elsewhere':
 					return Response.json({error: 'A quote is of a Message not in this Thread'}, {status: 400});
+			}
+		}
+		const [, previewIn, previewOf] = previewPath.exec(url.pathname) ?? [];
+		if (previewOf !== undefined && request.method === 'DELETE') {
+			const result = await removePreview(env.DB, person, previewIn, previewOf, Date.now());
+			switch (result.kind) {
+				case 'changed':
+					await tellEveryoneIn(env, previewIn, {kind: 'message', message: result.message});
+					return Response.json(result.message);
+				case 'no_such_message':
+					return Response.json({error: 'No such Message'}, {status: 404});
+				case 'not_author':
+					return Response.json({error: 'Only its author can remove a Message\'s preview'}, {status: 403});
+				case 'deleted':
+					return Response.json({error: 'That Message was deleted'}, {status: 409});
 			}
 		}
 		const renamed = titlePath.exec(url.pathname)?.[1];

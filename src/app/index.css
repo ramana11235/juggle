@@ -200,6 +200,19 @@ html, body { overscroll-behavior: none; }
 		width: 0;
 	}
 }
+/* A link card whose page has no preview folds away. */
+@utility fold-away {
+	animation: fold-away 300ms ease-in forwards;
+}
+@keyframes fold-away {
+	from {
+		max-height: 6rem;
+	}
+	to {
+		max-height: 0;
+		opacity: 0;
+	}
+}
 @keyframes slide-out {
 	to {
 		transform: translateX(100%);

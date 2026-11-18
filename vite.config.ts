@@ -15,6 +15,8 @@ export default defineConfig({
 			persistState: process.env.JUGGLE_LOCAL_STATE ? {path: process.env.JUGGLE_LOCAL_STATE} : true,
 			// Test servers run side by side, so they do not all claim the debugger's port.
 			inspectorPort: process.env.JUGGLE_LOCAL_STATE ? false : undefined,
+			// Test servers fetch previews only from their own pages, so no test reaches the web.
+			config: process.env.JUGGLE_LOCAL_STATE ? (worker) => ({vars: {...worker.vars, PREVIEWS_FROM: 'this_juggle'}}) : undefined,
 		}),],
 	resolve: {alias: {'@': path.resolve(import.meta.dirname, 'src/app')}},
 	server: {host: true, port: 5192},
