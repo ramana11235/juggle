@@ -12,6 +12,7 @@ import {cn} from './lib/utils';
 import {button, iconButton, label} from './ui';
 import {stayLive} from './live';
 import {chooseTheme, themeChoice} from './theme';
+import {tabIcon, tabTitle} from './unseenTab';
 import {Heading, Juggled} from './Mark';
 import {begin, useSettledMark} from './settled';
 
@@ -47,6 +48,11 @@ export function App() {
 	const [me, setMe] = useState<Person>();
 	const [people, setPeople] = useState<Person[]>([]);
 	const [threads, setThreads] = useState<Thread[]>([]);
+	const unseen = threads.reduce((total, thread) => total + thread.unseen, 0);
+	useEffect(() => {
+		document.title = tabTitle(unseen);
+		document.querySelector<HTMLLinkElement>('link[rel="icon"]')!.href = tabIcon(unseen);
+	}, [unseen]);
 	const [open, setOpen] = useState(() => openFromAddress().thread);
 	const [side, setSide] = useState(() => openFromAddress().side);
 	// Messages sent from this screen live here, above the open Thread, so
