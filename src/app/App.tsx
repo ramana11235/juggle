@@ -27,6 +27,7 @@ function openFromAddress(address = location.pathname): {thread: string | undefin
 }
 
 const wide = matchMedia('(min-width: 768px)');
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 // Whether the screen is wide enough to show a side discussion beside its Thread.
 function useWide() {
 	return useSyncExternalStore(
@@ -327,6 +328,18 @@ function Reading({thread, me, people, loading, saved, outgoing, side, onSide, on
 	};
 	const sentIn = (place: Place) => outgoing.filter((s) => samePlace(s.message.place, place)).length;
 	const parent = side === undefined ? undefined : shown.find((s) => s.message.id === side && s.message.place.kind === 'main');
+	// A side discussion just closed stays on screen while it slides away,
+	// unless the device asks for reduced motion, and is gone once it has.
+	const [closing, setClosing] = useState<{kind: 'none'} | {kind: 'closing'; shown: Shown}>({kind: 'none'});
+	const lastParent = useRef(parent);
+	useLayoutEffect(() => {
+		const was = lastParent.current;
+		lastParent.current = parent;
+		if (parent) setClosing({kind: 'none'});
+		else if (was && !reducedMotion.matches) setClosing({kind: 'closing', shown: was});
+		// Only opening and closing matter, not each new copy of the same Message.
+	}, [parent?.message.id]);
+	const panel = parent ?? (closing.kind === 'closing' ? closing.shown : undefined);
 	// On a narrow screen the side discussion covers the Thread, so the Thread's
 	// Messages are not being looked at.
 	const wideScreen = useWide();
@@ -362,32 +375,45 @@ function Reading({thread, me, people, loading, saved, outgoing, side, onSide, on
 					footClassName={cn('mx-auto w-full md:px-6', column)}
 				/>
 			</div>
-			{parent && (
-				<section aria-label="Side discussion" className="fixed inset-0 z-40 flex flex-col bg-card max-md:motion-safe:slide-in md:static md:z-auto md:w-[420px] md:shrink-0 md:border-l md:border-border">
-					<div className="flex items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] pb-4">
-						<span className="text-[12px] font-medium tracking-[0.15em] uppercase opacity-60">Side discussion</span>
-						<button onClick={onCloseSide} aria-label="Close" className="opacity-60 hover:opacity-100">
-							<X className="size-5" />
-						</button>
-					</div>
-					<div className="min-h-0 flex-1">
-						<Conversation
-							key={parent.message.id}
-							{...common}
-							threadId={thread.id}
-							label="Messages in the side discussion"
-							loading={false}
-							shown={sideOf(parent.message.id)}
-							points={sidePoints(parent.message.id)}
-							looking
-							sentHere={sentIn({kind: 'side', messageId: parent.message.id})}
-							draftKey={`juggle-draft-${thread.id}-${parent.message.id}`}
-							parent={{shown: parent, seen: seenByEveryoneElse(parent.message, thread.seen)}}
-							onSend={(parts) => onSend(parts, {kind: 'side', messageId: parent.message.id})}
-							className="px-5 pb-6"
-							footClassName=""
-							small
-						/>
+			{panel && (
+				<section
+					aria-label="Side discussion"
+					inert={!parent}
+					className={cn(
+						'fixed inset-0 z-40 bg-card md:static md:z-auto md:w-[420px] md:shrink-0 md:overflow-hidden md:border-l md:border-border',
+						parent ? 'max-md:motion-safe:slide-in md:motion-safe:drawer-in' : 'max-md:slide-out md:drawer-out',
+					)}
+					onAnimationEnd={(event) => {
+						if (!parent && event.target === event.currentTarget) setClosing({kind: 'none'});
+					}}
+				>
+					{/* On a laptop the panel opens from no width to its own, so its contents keep their width and do not rewrap as it opens. */}
+					<div className="flex h-full flex-col md:w-[420px]">
+						<div className="flex items-center justify-between px-5 pt-[max(16px,env(safe-area-inset-top))] pb-4">
+							<span className="text-[12px] font-medium tracking-[0.15em] uppercase opacity-60">Side discussion</span>
+							<button onClick={onCloseSide} aria-label="Close" className="opacity-60 hover:opacity-100">
+								<X className="size-5" />
+							</button>
+						</div>
+						<div className="min-h-0 flex-1">
+							<Conversation
+								key={panel.message.id}
+								{...common}
+								threadId={thread.id}
+								label="Messages in the side discussion"
+								loading={false}
+								shown={sideOf(panel.message.id)}
+								points={sidePoints(panel.message.id)}
+								looking
+								sentHere={sentIn({kind: 'side', messageId: panel.message.id})}
+								draftKey={`juggle-draft-${thread.id}-${panel.message.id}`}
+								parent={{shown: panel, seen: seenByEveryoneElse(panel.message, thread.seen)}}
+								onSend={(parts) => onSend(parts, {kind: 'side', messageId: panel.message.id})}
+								className="px-5 pb-6"
+								footClassName=""
+								small
+							/>
+						</div>
 					</div>
 				</section>
 			)}
@@ -438,7 +464,16 @@ function Conversation({me, people, answered, deleted, onEdit, onDelete, onResend
 	// The Message a tapped quote went to, highlighted until another is tapped.
 	const [highlighted, setHighlighted] = useState<string>();
 	const goTo = (id: string) => {
-		scroller.current?.querySelector(`[data-message-id="${id}"]`)?.scrollIntoView({block: 'center'});
+		const element = scroller.current?.querySelector<HTMLElement>(`[data-message-id="${id}"]`);
+		element?.scrollIntoView({block: 'center'});
+		// The same Message highlighted again keeps its attribute, so its flash
+		// is restarted by hand: clearing the animation and reading the layout
+		// makes the browser start it afresh.
+		if (element && highlighted === id) {
+			element.style.animation = 'none';
+			void element.offsetHeight;
+			element.style.animation = '';
+		}
 		setHighlighted(id);
 	};
 	const letter = (s: Shown, seen: boolean) => (

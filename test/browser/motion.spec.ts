@@ -37,6 +37,43 @@ test('on a laptop, an opened Thread does not slide in', async ({as}) => {
 	expect(await animation(page, 'main')).toBe('none');
 });
 
+test('on a laptop, a side discussion opens like a drawer pulled from the right', async ({as}) => {
+	test.skip(test.info().project.name === 'phone', 'On a phone a side discussion slides in over the Thread');
+	const page = await as('user-1@juggle.test');
+	await page.emulateMedia({reducedMotion: 'no-preference'});
+	await startThread(page, 'Free will');
+	await write(page, 'What do we mean by free?');
+	await page.getByRole('button', {name: 'Side discussion'}).click();
+	await settled(page);
+	expect(await animation(page, 'section[aria-label="Side discussion"]')).toBe('drawer-in');
+});
+
+test('a closed side discussion goes back the way it came, then is gone', async ({as}) => {
+	const page = await as('user-1@juggle.test');
+	await page.emulateMedia({reducedMotion: 'no-preference'});
+	await startThread(page, 'Free will');
+	await write(page, 'What do we mean by free?');
+	await page.getByRole('button', {name: 'Side discussion'}).click();
+	await settled(page);
+	const panel = page.locator('section[aria-label="Side discussion"]');
+	await panel.evaluate((element) => element.getAnimations().forEach((a) => a.finish()));
+	await panel.getByRole('button', {name: 'Close'}).click();
+	expect(await animation(page, 'section[aria-label="Side discussion"]')).toBe(test.info().project.name === 'phone' ? 'slide-out' : 'drawer-out');
+	await panel.evaluate((element) => element.getAnimations().forEach((a) => a.finish()));
+	await expect(panel).toHaveCount(0);
+});
+
+test('a closed side discussion is gone at once when the device asks for reduced motion', async ({as}) => {
+	const page = await as('user-1@juggle.test');
+	await page.emulateMedia({reducedMotion: 'reduce'});
+	await startThread(page, 'Free will');
+	await write(page, 'What do we mean by free?');
+	await page.getByRole('button', {name: 'Side discussion'}).click();
+	await settled(page);
+	await page.getByRole('button', {name: 'Close'}).click();
+	await expect(page.locator('section[aria-label="Side discussion"]')).toHaveCount(0);
+});
+
 test('a new Message fades in', async ({as}) => {
 	const page = await as('user-1@juggle.test');
 	await page.emulateMedia({reducedMotion: 'no-preference'});

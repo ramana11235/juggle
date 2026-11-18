@@ -60,6 +60,23 @@ test('a Reply to a whole Message shows it quoted, and tapping the quote goes to 
 	await expect(messages(user1).first()).toHaveAttribute('data-highlighted', 'true');
 });
 
+test('tapping the same quote again flashes the original again', async ({as}) => {
+	const user1 = await as('user-1@juggle.test');
+	await startThread(user1, 'Free will');
+	await send(user1, 'Free means uncaused.');
+	await messages(user1).first().getByRole('button', {name: 'Reply'}).click();
+	await send(user1, 'Then nothing is free.');
+	const quote = messages(user1).last().getByRole('button', {name: 'Go to the quoted Message'});
+	const flashing = () => messages(user1).first().evaluate((element) => element.getAnimations().some((a) => (a as CSSAnimation).animationName === 'highlighted' && a.playState === 'running'));
+	await quote.click();
+	expect(await flashing()).toBe(true);
+	// The first flash is ended at once, so the second tap is what starts one.
+	await messages(user1).first().evaluate((element) => element.getAnimations().forEach((a) => a.finish()));
+	expect(await flashing()).toBe(false);
+	await quote.click();
+	expect(await flashing()).toBe(true);
+});
+
 test('a Reply quoting two selected passages with words between them shows both in order, and the original marks them as answered', async ({as}) => {
 	const user1 = await as('user-1@juggle.test');
 	const user2 = await as('user-2@juggle.test');
