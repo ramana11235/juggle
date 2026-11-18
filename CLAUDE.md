@@ -35,7 +35,7 @@ Every piece of work on Juggle is an issue first, and the issues are its backlog 
 - `JUGGLE_TARGET=beta npx playwright test` runs only the browser tests tagged `@beta` against the beta copy on Cloudflare through real Access. Beta is for what only real Cloudflare can show, so a test is tagged `@beta` only when its path depends on Access, the Durable Objects or the real D1, and every other test runs only against a local Juggle. The tests sign in as test People with the service tokens in the git-ignored `beta-tokens.json`. Beta's database holds only test data and is emptied before and after each test.
 - Test People are named for the role they play, such as `user-1@juggle.test`, never with made-up names.
 - After changing `wrangler.example.jsonc`, run `npm run types` to update `worker-configuration.d.ts`.
-- Keep throwaway UI versions in `.scratch/juggle/prototypes/`, which is not part of the repo. A prototype whose answer is agreed is committed to a throwaway branch out of main, as the record of what was agreed.
+- Keep throwaway UI versions in `.scratch/juggle/prototypes/`, which is not part of the repo. Once a prototype's answer is agreed, record it on its issue: what was chosen, what was tried and not chosen, and why. The prototype itself is not kept, because the built feature replaces it.
 - The repo is public, so nothing personal is ever committed: no emails, no names of the People using Juggle, no hosting values. Those live in the git-ignored `wrangler.jsonc`, `wrangler.beta.jsonc` and `beta-tokens.json`.
 
 ### UI changes
