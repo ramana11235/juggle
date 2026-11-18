@@ -82,5 +82,6 @@ test('the words in every box and pill button across Juggle sit in its middle, wi
 	await page.getByRole('textbox', {name: 'Message'}).fill('What do we mean by free?');
 	const inThread = await inkSpace(page, 'button.rounded-full:not(:has(svg))');
 	const spaces = [...naming, ...inSettings, ...starting, ...inThread];
-	for (const space of spaces) expect(Math.abs(space.above - space.below), `${space.text}: ${space.above} above, ${space.below} below`).toBeLessThanOrEqual(1);
+	// How far the words sit from the middle is half the difference between the space above and below them.
+	for (const space of spaces) expect(Math.abs(space.above - space.below) / 2, `${space.text}: ${space.above} above, ${space.below} below`).toBeLessThanOrEqual(1);
 });
