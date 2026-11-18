@@ -1,6 +1,6 @@
 import {Menu} from '@base-ui/react/menu';
 import {AlertCircle, ArrowLeft, Check, CheckCheck, Clock, MessageSquareText, Monitor, Moon, MoreHorizontal, Pencil, Plus, Quote as QuoteIcon, Sun, Trash2, X} from 'lucide-react';
-import {useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode} from 'react';
 import {bodyLimit, firstLink, messageLength, nameLimit, ownWords, titleLimit, type LiveEvent, type Message, type Person, type Place, type Quote, type SentPart, type SeenPoint, type SeenUpTo, type Thread} from '../shared/api';
 import {firstUnseen, seenByEveryoneElse, unseenCount} from '../shared/seen';
 import {api} from './api';
@@ -13,6 +13,7 @@ import {button, iconButton, label} from './ui';
 import {stayLive} from './live';
 import {chooseTheme, themeChoice} from './theme';
 import {tabIcon, tabTitle} from './unseenTab';
+import {usePull} from './usePull';
 import {Heading, Juggled} from './Mark';
 import {begin, useSettledMark} from './settled';
 
@@ -55,6 +56,7 @@ export function App() {
 	}, [unseen]);
 	const [open, setOpen] = useState(() => openFromAddress().thread);
 	const [side, setSide] = useState(() => openFromAddress().side);
+	const pull = usePull(open);
 	// Messages sent from this screen live here, above the open Thread, so
 	// moving to another Thread does not lose one still on its way.
 	// Messages not yet saved survive a reload, coming back as not sent.
@@ -198,11 +200,37 @@ export function App() {
 	const thread = threads.find((t) => t.id === open);
 	return (
 		<div className="flex h-dvh">
-			<aside className={cn('h-full w-full flex-col bg-sidebar md:flex md:w-80 md:border-r md:border-border', thread ? 'hidden' : 'flex')}>
-				<ThreadList threads={threads} people={people} open={open} onOpen={go} onStart={start} />
+			<aside
+				ref={pull.list}
+				data-pulled={pull.pulled}
+				data-dragging={pull.dragging}
+				data-motion={pull.motion}
+				onTransitionEnd={(event) => event.target === event.currentTarget && event.propertyName === 'transform' && pull.onSlid()}
+				style={{'--pulled': pull.amount} as CSSProperties}
+				className={cn('flex h-full flex-col bg-sidebar md:w-80 md:border-r md:border-border', thread ? 'pull-out' : 'w-full')}
+			>
+				<ThreadList
+					threads={threads}
+					people={people}
+					open={open}
+					onOpen={(id) => {
+						pull.putAway();
+						go(id);
+					}}
+					onStart={start}
+				/>
 				<YourName name={ownName} onChange={giveName} />
 			</aside>
-			<main className={cn('h-full min-w-0 flex-1 max-md:motion-safe:slide-in', thread ? 'block' : 'hidden md:block')}>
+			{thread && (
+				<div
+					data-testid="behind-the-list"
+					aria-hidden
+					onClick={pull.putAway}
+					className="fixed inset-0 z-30 bg-black md:hidden"
+					style={{opacity: pull.amount * 0.35, pointerEvents: pull.amount > 0 ? 'auto' : 'none', transition: pull.dragging ? 'none' : 'opacity 300ms'}}
+				/>
+			)}
+			<main {...pull.handlers} style={{touchAction: 'pan-y pinch-zoom'}} className={cn('h-full min-w-0 flex-1 max-md:motion-safe:slide-in', thread ? 'block' : 'hidden md:block')}>
 				{thread && (
 					<Reading
 						key={thread.id}

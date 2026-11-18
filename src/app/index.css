@@ -209,6 +209,38 @@ html, body { overscroll-behavior: none; }
 	padding-top: 0.2em;
 }
 
+/* On a phone the list of Threads can be pulled out from the left over an
+   open Thread, which darkens behind it, as a drawer. It sits off screen by
+   as much of its width as is not pulled out, and is hidden from taps and
+   the keyboard while put away. It slides only once a finger has moved it,
+   following the finger with no delay while dragged, so opening a Thread
+   never shows it leaving. On a laptop the list is always beside the Thread. */
+@utility pull-out {
+	@media (width < 48rem) {
+		position: fixed;
+		inset-block: 0;
+		left: 0;
+		z-index: 40;
+		width: 85%;
+		box-shadow: 0 0 24px rgb(0 0 0 / 0.2);
+		transform: translateX(calc((var(--pulled) - 1) * 100%));
+		&[data-pulled='closed']:not([data-dragging='true']) {
+			visibility: hidden;
+		}
+		@media (prefers-reduced-motion: no-preference) {
+			&[data-motion='sliding'] {
+				transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s 300ms;
+			}
+			&[data-motion='sliding'][data-pulled='open'] {
+				transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+			}
+			&[data-dragging='true'] {
+				transition: none;
+			}
+		}
+	}
+}
+
 /* A link card whose page has no preview folds away. */
 @utility fold-away {
 	animation: fold-away 300ms ease-in forwards;
