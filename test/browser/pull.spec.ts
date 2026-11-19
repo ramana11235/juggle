@@ -30,26 +30,33 @@ const rightEdge = async (page: Page) => {
 	return box.x + box.width;
 };
 
-// A finger on the Thread, from the left third of the screen. Each move takes
-// `msPerMove` on the page's clock, so 100px moves at 20ms each is 0.2px/ms.
+// A finger on the Thread, from the left third of the screen, sent as the
+// touch events a phone sends. Each move takes `msPerMove` on the page's
+// clock, so 100px moves at 20ms each is 0.2px/ms. `phoneTakesOver` sends the
+// pointercancel a phone sends when it decides a touch is a scroll, after
+// which it still sends the touch's moves.
 async function touch(page: Page) {
 	const main = page.locator('main');
 	const box = (await main.boundingBox())!;
-	const start = {x: box.x + 40, y: box.y + box.height / 2};
-	let at = {...start};
-	const send = (type: string) => main.dispatchEvent(type, {pointerType: 'touch', pointerId: 1, isPrimary: true, clientX: at.x, clientY: at.y, bubbles: true});
-	await page.clock.pauseAt(Date.now() + 60_000);
-	await send('pointerdown');
+	let at = {x: box.x + 40, y: box.y + box.height / 2};
+	const send = (type: string) => {
+		const finger = {identifier: 1, clientX: at.x, clientY: at.y};
+		const touches = type === 'touchend' ? [] : [finger];
+		return main.dispatchEvent(type, {touches, targetTouches: touches, changedTouches: [finger], bubbles: true, cancelable: true});
+	};
+	await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
+	await send('touchstart');
 	return {
 		async move(dx: number, dy: number, {moves = 5, msPerMove = 20} = {}) {
 			for (let n = 0; n < moves; n++) {
 				await page.clock.runFor(msPerMove);
 				at = {x: at.x + dx / moves, y: at.y + dy / moves};
-				await send('pointermove');
+				await send('touchmove');
 			}
 		},
+		phoneTakesOver: () => main.dispatchEvent('pointercancel', {pointerType: 'touch', pointerId: 1, isPrimary: true, bubbles: true}),
 		async lift() {
-			await send('pointerup');
+			await send('touchend');
 			await page.clock.resume();
 			await list(page).evaluate((element) => element.getAnimations().forEach((a) => a.finish()));
 		},
@@ -157,4 +164,60 @@ test('a Thread opened after going back from a pulled-out list opens with the lis
 test('a Thread on a phone can still be pinched to zoom', async ({as}) => {
 	const page = await inThread(as);
 	expect(await page.locator('main').evaluate((element) => getComputedStyle(element).touchAction)).toBe('pan-y pinch-zoom');
+});
+
+test('a slow swipe keeps pulling the list out when the phone takes the touch over partway', async ({as}) => {
+	const page = await inThread(as);
+	const finger = await touch(page);
+	await finger.move(60, 0, {moves: 3, msPerMove: 60});
+	await finger.phoneTakesOver();
+	await finger.move(80, 6, {moves: 4, msPerMove: 60});
+	expect(Math.round(await rightEdge(page))).toBe(140);
+	await finger.lift();
+	await expect(list(page)).toHaveAttribute('data-pulled', 'open');
+});
+
+test('once a swipe is going sideways, the phone is stopped from scrolling the Thread', async ({as}) => {
+	const page = await inThread(as);
+	// Whether each move reaching the page was stopped from scrolling it.
+	await page.evaluate(() => {
+		(window as unknown as {stopped: boolean[]}).stopped = [];
+		document.addEventListener('touchmove', (event) => (window as unknown as {stopped: boolean[]}).stopped.push(event.defaultPrevented));
+	});
+	const finger = await touch(page);
+	// 6px a move: the first is too short to tell which way the swipe goes.
+	await finger.move(60, 4, {moves: 10});
+	await finger.lift();
+	expect(await page.evaluate(() => (window as unknown as {stopped: boolean[]}).stopped)).toEqual([false, ...Array(9).fill(true)]);
+});
+
+test('a sideways swipe on code that is wider than the screen scrolls the code, not the list', async ({as}) => {
+	const page = await inThread(as);
+	await page.getByRole('textbox', {name: 'Message'}).fill(`\`\`\`\n${'const freeWill = compatibilism(); '.repeat(8)}\n\`\`\``);
+	await page.getByRole('button', {name: 'Send'}).click();
+	await settled(page);
+	const code = page.locator('.md pre');
+	// Scrolled part of the way along, so it can scroll either way.
+	await code.evaluate((element) => (element.scrollLeft = 100));
+	await page.evaluate(() => {
+		(window as unknown as {stopped: boolean[]}).stopped = [];
+		document.addEventListener('touchmove', (event) => (window as unknown as {stopped: boolean[]}).stopped.push(event.defaultPrevented));
+	});
+	const box = (await code.boundingBox())!;
+	const swipe = async (dx: number) => {
+		const send = (type: string, x: number) => {
+			const finger = {identifier: 1, clientX: x, clientY: box.y + box.height / 2};
+			const touches = type === 'touchend' ? [] : [finger];
+			return code.dispatchEvent(type, {touches, targetTouches: touches, changedTouches: [finger], bubbles: true, cancelable: true});
+		};
+		const from = box.x + box.width / 2;
+		await send('touchstart', from);
+		for (let n = 1; n <= 5; n++) await send('touchmove', from + (dx / 5) * n);
+		await send('touchend', from + dx);
+	};
+	await swipe(150);
+	await swipe(-150);
+	expect(await page.evaluate(() => (window as unknown as {stopped: boolean[]}).stopped)).toEqual(Array(10).fill(false));
+	expect(Math.round(await rightEdge(page))).toBe(0);
+	await expect(list(page)).toHaveAttribute('data-pulled', 'closed');
 });

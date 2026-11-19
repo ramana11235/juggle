@@ -230,7 +230,7 @@ export function App() {
 					style={{opacity: pull.amount * 0.35, pointerEvents: pull.amount > 0 ? 'auto' : 'none', transition: pull.dragging ? 'none' : 'opacity 300ms'}}
 				/>
 			)}
-			<main {...pull.handlers} style={{touchAction: 'pan-y pinch-zoom'}} className={cn('h-full min-w-0 flex-1 max-md:motion-safe:slide-in', thread ? 'block' : 'hidden md:block')}>
+			<main ref={pull.area} style={{touchAction: 'pan-y pinch-zoom'}} className={cn('h-full min-w-0 flex-1 max-md:motion-safe:slide-in', thread ? 'block' : 'hidden md:block')}>
 				{thread && (
 					<Reading
 						key={thread.id}
