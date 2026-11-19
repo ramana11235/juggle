@@ -118,7 +118,7 @@ Why: research and long replies probably happen at a laptop, which suits the What
 
 Asked: how does a Thread get started?
 
-Decided: either of us can start one. A Thread needs only a title naming the topic; its first Message is optional. The other person is notified that a new Thread exists, as for a new Message. Either of us can change the title later.
+Decided: either of us can start one. A Thread needs only a title naming the topic; its first Message is optional. The other person is notified that a new Thread exists, as for a new Message. Revised while planning push notifications (#13): a new Thread on its own notifies nobody; only Messages do, including those in side discussions. Either of us can change the title later.
 
 Why: a Thread can then be made the moment a topic comes up in WhatsApp and written in later, after research. A topic often comes into focus only after talking about it, so the title can change.
 
@@ -327,6 +327,8 @@ Decided: Time Travel (always on; any minute in the last 7 days on the free plan,
 Asked: always fetch the page fresh and cache only versioned files, cache the whole app with a "new version" prompt, or no caching?
 
 Decided: the service worker (needed for push) fetches index.html from the network on every open and caches only the build's versioned files, whose names change with every build. A reopen always gets the latest version. A screen left open runs old code until reloaded, so every API change is expand and contract, as schema changes are (T8). Assumed, not checked: iOS home-screen apps can keep a page open for days.
+
+Revised while planning push notifications (#13): the service worker only shows notifications and opens Juggle when one is tapped, and caches nothing. Caching was chosen for faster loads, not because push needs it; the browser already caches the versioned files, whose names change with every build, and Juggle does not open offline (#14). A service worker in front of every load could serve the wrong files after a deploy, a kind of fault that is hard to see and to test, so every load stays on the network as before.
 
 Carried over as engineering practice, not asked: Markdown from Messages is sanitised before it is shown, since a Message is input from another Person; the project is run with issues on a GitHub Projects board, needs-triage until the user marks one ready, CLAUDE.md, docs/agents/, throwaway prototypes in .scratch/, and review with /ponytail-review.
 
